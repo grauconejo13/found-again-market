@@ -1,0 +1,2 @@
+.product-card{display:flex;flex-direction:column}.product-info{min-height:54px}.product-note{min-height:40px}.product-card .add{margin-top:auto}
+@media(max-width:720px){.product-info{min-height:66px}.product-note{min-height:52px}}
