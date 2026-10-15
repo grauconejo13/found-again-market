@@ -13,7 +13,7 @@ Found Again is a thoughtful storefront for secondhand books, clothing, home good
 
 ## Current progress
 
-The first buyer-facing experience and seller-workspace concept are in place. The next build milestones are real inventory data, AI listing drafts, a cart API, and PayPal Sandbox checkout.
+The first buyer-facing experience and interactive seller workflow are in place. Sellers can now add basic item details, generate an AI-style draft, review it, and publish it directly into the storefront during the session. The next build milestones are persistent inventory data, a real AI integration, a cart API, and PayPal Sandbox checkout.
 
 ## Run locally
 
