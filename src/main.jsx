@@ -4,6 +4,7 @@ import './styles.css';
 import './seller.css';
 import './product-grid.css';
 import './product-detail.css';
+import './shop-guide.css';
 
 const inventory = [
   { id: 1, title: 'The Secret Garden', category: 'Books', condition: 'Gently loved', price: 12, accent: 'moss', note: 'A well-kept classic with a little history in its pages.', tag: 'Cozy classic' },
@@ -28,6 +29,9 @@ function App() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [activePhoto, setActivePhoto] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideInput, setGuideInput] = useState('');
+  const [guideReply, setGuideReply] = useState('Tell me what you’re looking for—a cozy read, a gift, a color, or a budget—and I’ll help you begin.');
 
   const items = useMemo(() => products.filter((item) =>
     (category === 'All' || item.category === category) &&
@@ -47,6 +51,23 @@ function App() {
     setSellerStep('published');
   };
   const openProduct = (item) => { setSelectedItem(item); setActivePhoto(0); setZoom(1); };
+  const takeToShop = () => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' });
+  const useGuide = (prompt) => {
+    if (prompt === 'books') { setCategory('Books'); setQuery(''); setGuideReply('I found two thoughtful books in the collection. They are waiting in the shop for you.'); }
+    if (prompt === 'under25') { setCategory('All'); setQuery(''); setGuideReply('Most of the current collection is under $25. I’ve opened the full set so you can browse the little treasures.'); }
+    if (prompt === 'bundle') { const bundle = [...products].sort((a, b) => a.price - b.price).slice(0, 2); bundle.forEach(addToCart); setGuideReply(`I put ${bundle.map((item) => item.title).join(' and ')} in your bag — a ${bundle.reduce((sum, item) => sum + item.price, 0)} little-found bundle.`); }
+    takeToShop();
+  };
+  const askGuide = (event) => {
+    event.preventDefault();
+    const request = guideInput.toLowerCase().trim();
+    if (!request) return;
+    if (request.includes('book') || request.includes('read')) useGuide('books');
+    else if (request.includes('bundle') || request.includes('gift')) useGuide('bundle');
+    else if (request.includes('budget') || request.includes('under') || request.includes('cheap')) useGuide('under25');
+    else { setCategory('All'); setQuery(''); setGuideReply('I’m searching the current collection for something with that feeling. Try “cozy book,” “gift bundle,” or “under $25” for a more specific match.'); takeToShop(); }
+    setGuideInput('');
+  };
 
   return <main>
     <header className="site-header">
@@ -88,7 +109,7 @@ function App() {
       </article>)}</div>
     </section>
 
-    <section className="ai-banner"><div><p className="eyebrow">A LITTLE HELP, NOT A HARD SELL</p><h2>Looking for something<br/><i>specific?</i></h2></div><div><p>Tell Found Again what you’re in the mood for, who you’re shopping for, or your budget. Our future AI guide will help you find a meaningful match—or make a bundle.</p><button className="link-button">Meet the guide <span>→</span></button></div></section>
+    <section className="ai-banner"><div><p className="eyebrow">A LITTLE HELP, NOT A HARD SELL</p><h2>Looking for something<br/><i>specific?</i></h2></div><div><p>Tell Found Again what you’re in the mood for, who you’re shopping for, or your budget. Our future AI guide will help you find a meaningful match—or make a bundle.</p><button className="link-button" onClick={() => setShowGuide(true)}>Meet the guide <span>→</span></button></div></section>
 
     <footer><a className="wordmark" href="#top">found <em>again</em></a><p>Good things, continued.</p><p>© 2026 Found Again</p></footer>
 
@@ -100,6 +121,8 @@ function App() {
       {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. That is the seller-to-buyer handoff we’ll show in your hackathon demo.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>See it in the shop <span>→</span></button></>}
     </aside>}
     {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}><div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div></div><p className="image-count">{activePhoto + 1} / 4</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{[0, 1, 2, 3].map((photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}><span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span></button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ One of one</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>Add to bag <span>→</span></button><p className="gallery-note">Gallery demo: replace these four image slots with your own item photos when listing for real.</p></div></div></div>}
+    <button className="guide-fab" onClick={() => setShowGuide((open) => !open)} aria-label="Open Found Again guide"><span>✦</span><small>Ask</small></button>
+    {showGuide && <aside className="shop-guide" aria-label="Found Again shopping guide"><button className="guide-close" onClick={() => setShowGuide(false)}>×</button><div className="guide-head"><span>✦</span><div><p className="eyebrow">FOUND AGAIN GUIDE</p><h2>A small nudge<br/><i>in the right direction.</i></h2></div></div><p className="guide-reply">{guideReply}</p><div className="guide-prompts"><button onClick={() => useGuide('books')}>Find a cozy book</button><button onClick={() => useGuide('bundle')}>Build a small bundle</button><button onClick={() => useGuide('under25')}>Show finds under $25</button></div><form onSubmit={askGuide}><input value={guideInput} onChange={(event) => setGuideInput(event.target.value)} placeholder="What are you looking for?" /><button type="submit">→</button></form><p className="guide-disclosure">Recommendations are suggestions. You always choose the items and approve the final total before PayPal checkout.</p></aside>}
   </main>
 }
 
