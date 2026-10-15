@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import './seller.css';
 import './product-grid.css';
+import './product-detail.css';
 
 const inventory = [
   { id: 1, title: 'The Secret Garden', category: 'Books', condition: 'Gently loved', price: 12, accent: 'moss', note: 'A well-kept classic with a little history in its pages.', tag: 'Cozy classic' },
@@ -24,6 +25,9 @@ function App() {
   const [photoName, setPhotoName] = useState('');
   const [listing, setListing] = useState({ name: '', category: 'Books', condition: 'Gently loved', notes: '', price: '' });
   const [draft, setDraft] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [activePhoto, setActivePhoto] = useState(0);
+  const [zoom, setZoom] = useState(1);
 
   const items = useMemo(() => products.filter((item) =>
     (category === 'All' || item.category === category) &&
@@ -42,6 +46,7 @@ function App() {
     setProducts((current) => [{ ...draft, id: Date.now() }, ...current]);
     setSellerStep('published');
   };
+  const openProduct = (item) => { setSelectedItem(item); setActivePhoto(0); setZoom(1); };
 
   return <main>
     <header className="site-header">
@@ -77,7 +82,7 @@ function App() {
         <label className="search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the collection" /></label>
       </div>
       <div className="product-grid">{items.map((item) => <article className="product-card" key={item.id}>
-        <div className={`product-image ${item.accent}`}><span>{item.tag}</span><div className="object-mark">{item.category === 'Books' ? '▤' : item.category === 'Clothing' ? '⌑' : '✳'}</div></div>
+        <button className={`product-image ${item.accent}`} onClick={() => openProduct(item)} aria-label={`View details for ${item.title}`}><span>{item.tag}</span><div className={`object-mark photo-${activePhoto}`}>{item.category === 'Books' ? '▤' : item.category === 'Clothing' ? '⌑' : '✳'}</div><i>View details ↗</i></button>
         <div className="product-info"><div><p className="product-category">{item.category} · {item.condition}</p><h3>{item.title}</h3></div><strong>${item.price}</strong></div>
         <p className="product-note">{item.note}</p><button className="add" onClick={() => addToCart(item)}>{cart.some((entry) => entry.id === item.id) ? 'In your bag' : 'Add to bag'} <span>+</span></button>
       </article>)}</div>
@@ -94,6 +99,7 @@ function App() {
       {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card"><span className={`mini ${draft.accent}`}></span><div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b></div></div><div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
       {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. That is the seller-to-buyer handoff we’ll show in your hackathon demo.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>See it in the shop <span>→</span></button></>}
     </aside>}
+    {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}><div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div></div><p className="image-count">{activePhoto + 1} / 4</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{[0, 1, 2, 3].map((photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}><span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span></button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ One of one</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>Add to bag <span>→</span></button><p className="gallery-note">Gallery demo: replace these four image slots with your own item photos when listing for real.</p></div></div></div>}
   </main>
 }
 
