@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import './seller.css';
 
 const inventory = [
   { id: 1, title: 'The Secret Garden', category: 'Books', condition: 'Gently loved', price: 12, accent: 'moss', note: 'A well-kept classic with a little history in its pages.', tag: 'Cozy classic' },
@@ -17,13 +18,29 @@ function App() {
   const [showCart, setShowCart] = useState(false);
   const [showSeller, setShowSeller] = useState(false);
   const [query, setQuery] = useState('');
+  const [products, setProducts] = useState(inventory);
+  const [sellerStep, setSellerStep] = useState('welcome');
+  const [photoName, setPhotoName] = useState('');
+  const [listing, setListing] = useState({ name: '', category: 'Books', condition: 'Gently loved', notes: '', price: '' });
+  const [draft, setDraft] = useState(null);
 
-  const items = useMemo(() => inventory.filter((item) =>
+  const items = useMemo(() => products.filter((item) =>
     (category === 'All' || item.category === category) &&
     item.title.toLowerCase().includes(query.toLowerCase())
-  ), [category, query]);
+  ), [products, category, query]);
   const total = cart.reduce((sum, item) => sum + item.price, 0);
   const addToCart = (item) => setCart((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
+  const updateListing = (event) => setListing((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const generateDraft = () => {
+    const title = listing.name.trim() || `A Found Again ${listing.category.slice(0, -1) || 'Find'}`;
+    const tag = listing.category === 'Books' ? 'A new chapter' : listing.category === 'Clothing' ? 'Second season' : 'Freshly found';
+    setDraft({ ...listing, title, tag, accent: ['moss', 'butter', 'clay', 'lilac'][products.length % 4], note: listing.notes.trim() || `A thoughtfully chosen ${listing.category.toLowerCase()} ready for its next story.`, price: Number(listing.price) || 12 });
+    setSellerStep('review');
+  };
+  const publishListing = () => {
+    setProducts((current) => [{ ...draft, id: Date.now() }, ...current]);
+    setSellerStep('published');
+  };
 
   return <main>
     <header className="site-header">
@@ -70,7 +87,12 @@ function App() {
     <footer><a className="wordmark" href="#top">found <em>again</em></a><p>Good things, continued.</p><p>© 2026 Found Again</p></footer>
 
     {showCart && <aside className="drawer"><button className="close" onClick={() => setShowCart(false)}>×</button><p className="eyebrow">YOUR BAG</p><h2>Almost yours.</h2>{cart.length ? <><div className="bag-items">{cart.map((item) => <div key={item.id}><span className={`mini ${item.accent}`}></span><p>{item.title}<small>{item.condition}</small></p><b>${item.price}</b></div>)}</div><div className="cart-total"><span>Total</span><strong>${total}</strong></div><button className="button checkout">Pay with PayPal <span>→</span></button><p className="sandbox-note">PayPal Sandbox checkout will be connected here.</p></> : <p className="empty">Your next favorite is waiting.</p>}</aside>}
-    {showSeller && <aside className="drawer seller"><button className="close" onClick={() => setShowSeller(false)}>×</button><p className="eyebrow">SELLER WORKSPACE</p><h2>Give it another story.</h2><div className="upload-zone"><span>↑</span><b>Add item photos</b><p>AI will help draft the title, condition notes, tags, and description.</p></div><div className="seller-steps"><p><span>1</span> Upload photos and a few notes</p><p><span>2</span> Review the AI draft—nothing publishes without you</p><p><span>3</span> Publish when it feels right</p></div><button className="button">Start a listing <span>→</span></button></aside>}
+    {showSeller && <aside className="drawer seller"><button className="close" onClick={() => { setShowSeller(false); setSellerStep('welcome'); }}>×</button><p className="eyebrow">SELLER WORKSPACE</p>
+      {sellerStep === 'welcome' && <><h2>Give it another story.</h2><div className="upload-zone"><span>↑</span><b>Add item photos</b><p>AI will help draft the title, condition notes, tags, and description.</p></div><div className="seller-steps"><p><span>1</span> Upload photos and a few notes</p><p><span>2</span> Review the AI draft—nothing publishes without you</p><p><span>3</span> Publish when it feels right</p></div><button className="button" onClick={() => setSellerStep('create')}>Start a listing <span>→</span></button></>}
+      {sellerStep === 'create' && <><h2>New listing.</h2><p className="seller-intro">Add the basics. In the finished product, photos will help AI create the first draft.</p><label className="file-picker">{photoName || 'Choose a photo'}<input type="file" accept="image/*" onChange={(event) => setPhotoName(event.target.files?.[0]?.name || '')} /></label><div className="listing-form"><label>Item name<input name="name" value={listing.name} onChange={updateListing} placeholder="e.g. Vintage poetry book" /></label><label>Category<select name="category" value={listing.category} onChange={updateListing}><option>Books</option><option>Clothing</option><option>Home</option><option>Accessories</option></select></label><label>Condition<select name="condition" value={listing.condition} onChange={updateListing}><option>Excellent</option><option>Very good</option><option>Gently loved</option><option>Good</option></select></label><label>Price<input name="price" value={listing.price} onChange={updateListing} type="number" min="1" placeholder="12" /></label><label>Seller notes<textarea name="notes" value={listing.notes} onChange={updateListing} placeholder="A few honest details: color, wear, why someone may love it…" /></label></div><button className="button" onClick={generateDraft}>Generate AI draft <span>→</span></button></>}
+      {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card"><span className={`mini ${draft.accent}`}></span><div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b></div></div><div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
+      {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. That is the seller-to-buyer handoff we’ll show in your hackathon demo.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>See it in the shop <span>→</span></button></>}
+    </aside>}
   </main>
 }
 
