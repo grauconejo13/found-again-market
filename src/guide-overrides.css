@@ -1,3 +1,4 @@
 .guide-reply{background:#f7f3ea;border:1px solid #d8d3c6;color:var(--ink)}
 .shop-guide input{background:#fffdf8;color:var(--ink)}
 .shop-guide input::placeholder{color:#778177}
+.header-actions{display:flex;align-items:center;gap:.55rem}.sell-button{border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:.68rem .85rem;font:500 .7rem var(--mono);letter-spacing:.04em;text-transform:uppercase}@media(max-width:650px){.header-actions{gap:.35rem}.sell-button{padding:.65rem .7rem}}
