@@ -146,9 +146,9 @@ function App() {
     <header className="site-header">
       <a className="wordmark" href="#top" aria-label="Found Again home">found <em>again</em></a>
       <nav aria-label="Main navigation">
-        <a href="#shop">Shop</a><a href="#how-it-works">How it works</a><button className="text-button" onClick={() => setShowSeller(true)}>For sellers</button>
+        <a href="#shop">Shop</a><a href="#how-it-works">How it works</a>
       </nav>
-      <button className="cart-button" onClick={() => setShowCart(true)}>Bag <span>{cart.length}</span></button>
+      <div className="header-actions"><button className="sell-button" onClick={() => setShowSeller(true)}>Sell</button><button className="cart-button" onClick={() => setShowCart(true)}>Bag <span>{cart.length}</span></button></div>
     </header>
 
     <section className="hero" id="top">
