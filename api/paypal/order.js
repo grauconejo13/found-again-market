@@ -19,7 +19,8 @@ export default async function handler(request, response) {
   try {
     const total = items.reduce((sum, item) => sum + Number(item.price), 0).toFixed(2);
     const origin = request.headers.origin || `https://${request.headers.host}`;
-    const result = await fetch(`${paypalBase()}/v2/checkout/orders`, { method: 'POST', headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': crypto.randomUUID() }, body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [{ amount: { currency_code: 'USD', value: total, breakdown: { item_total: { currency_code: 'USD', value: total } }, items: items.map((item) => ({ name: item.name, unit_amount: { currency_code: 'USD', value: item.price }, quantity: '1' })) }], application_context: { return_url: `${origin}/?paypal=return`, cancel_url: `${origin}/?paypal=cancel`, user_action: 'PAY_NOW', shipping_preference: 'GET_FROM_FILE' } }) });
+    const payload = { intent: 'CAPTURE', purchase_units: [{ amount: { currency_code: 'USD', value: total, breakdown: { item_total: { currency_code: 'USD', value: total } } }, items: items.map((item) => ({ name: item.name, unit_amount: { currency_code: 'USD', value: item.price }, quantity: '1' })) }], application_context: { return_url: `${origin}/?paypal=return`, cancel_url: `${origin}/?paypal=cancel`, user_action: 'PAY_NOW', shipping_preference: 'GET_FROM_FILE' } };
+    const result = await fetch(`${paypalBase()}/v2/checkout/orders`, { method: 'POST', headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': crypto.randomUUID() }, body: JSON.stringify(payload) });
     const order = await result.json();
     if (!result.ok) throw new Error(order.message || 'PayPal could not create an order.');
     return response.status(201).json({ orderId: order.id, approveUrl: order.links?.find((link) => link.rel === 'approve')?.href });
