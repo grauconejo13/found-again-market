@@ -5,6 +5,7 @@ import './seller.css';
 import './product-grid.css';
 import './product-detail.css';
 import './shop-guide.css';
+import './guide-overrides.css';
 import './receipt.css';
 
 const inventory = [
