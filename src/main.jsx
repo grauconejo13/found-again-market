@@ -41,13 +41,25 @@ function App() {
   const [suggestedBundle, setSuggestedBundle] = useState([]);
   const [checkoutStatus, setCheckoutStatus] = useState('');
   const [receipt, setReceipt] = useState(null);
+  const [hold, setHold] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('found-again-hold') || 'null'); } catch { return null; }
+  });
+  const [soldIds, setSoldIds] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('found-again-sold') || '[]'); } catch { return []; }
+  });
 
   const items = useMemo(() => products.filter((item) =>
     (category === 'All' || item.category === category) &&
     item.title.toLowerCase().includes(query.toLowerCase())
   ), [products, category, query]);
   const total = cart.reduce((sum, item) => sum + item.price, 0);
-  const addToCart = (item) => setCart((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
+  const holdIsActive = Boolean(hold?.expiresAt > Date.now());
+  const availability = (item) => soldIds.includes(item.id) ? 'sold' : holdIsActive && hold.itemIds.includes(item.id) ? 'held' : 'available';
+  const availabilityLabel = (item) => availability(item) === 'sold' ? 'Sold' : availability(item) === 'held' ? 'Reserved — checkout in progress' : '1 available · one of one';
+  const addToCart = (item) => {
+    if (availability(item) !== 'available') return;
+    setCart((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
+  };
   const updateListing = (event) => setListing((current) => ({ ...current, [event.target.name]: event.target.value }));
   const generateDraft = async () => {
     setSellerStep('thinking');
@@ -75,15 +87,20 @@ function App() {
   const useGuide = (prompt) => {
     if (prompt === 'books') { setCategory('Books'); setQuery(''); setGuideReply('I found two thoughtful books in the collection. They are waiting in the shop for you.'); }
     if (prompt === 'under25') { setCategory('All'); setQuery(''); setGuideReply('Most of the current collection is under $25. I’ve opened the full set so you can browse the little treasures.'); }
-    if (prompt === 'bundle') { const bundle = [...products].sort((a, b) => a.price - b.price).slice(0, 2); setSuggestedBundle(bundle); setGuideReply(`Here’s a small bundle to consider: ${bundle.map((item) => item.title).join(' and ')} for $${bundle.reduce((sum, item) => sum + item.price, 0)}. Nothing has been added yet.`); }
+    if (prompt === 'bundle') { const bundle = products.filter((item) => availability(item) === 'available').sort((a, b) => a.price - b.price).slice(0, 2); setSuggestedBundle(bundle); setGuideReply(`Here’s a small bundle to consider: ${bundle.map((item) => item.title).join(' and ')} for $${bundle.reduce((sum, item) => sum + item.price, 0)}. Nothing has been added yet.`); }
     takeToShop();
   };
   const startCheckout = async () => {
+    if (!cart.length || cart.some((item) => availability(item) !== 'available')) { setCheckoutStatus('One of these finds is no longer available. Please refresh your bag.'); return; }
     setCheckoutStatus('Preparing your secure PayPal checkout…');
     try {
       const response = await fetch('/api/paypal/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemIds: cart.map((item) => item.id) }) });
       const data = await parseApiResponse(response);
       if (!response.ok || !data.approveUrl) throw new Error(data.error || 'PayPal checkout is not ready yet.');
+      const nextHold = { itemIds: cart.map((item) => item.id), expiresAt: Date.now() + (10 * 60 * 1000) };
+      sessionStorage.setItem('found-again-hold', JSON.stringify(nextHold));
+      sessionStorage.setItem('found-again-checkout-items', JSON.stringify(nextHold.itemIds));
+      setHold(nextHold);
       window.location.assign(data.approveUrl);
     } catch (error) { setCheckoutStatus(error.message); }
   };
@@ -97,7 +114,12 @@ function App() {
       .then(async (response) => ({ response, data: await parseApiResponse(response) }))
       .then(({ response, data }) => {
         if (!response.ok) throw new Error(data.error || 'We could not confirm this payment.');
-        setReceipt(data); setCart([]); setCheckoutStatus(''); window.history.replaceState({}, '', window.location.pathname);
+        const purchasedIds = JSON.parse(sessionStorage.getItem('found-again-checkout-items') || '[]');
+        const nextSold = [...new Set([...soldIds, ...purchasedIds])];
+        sessionStorage.setItem('found-again-sold', JSON.stringify(nextSold));
+        sessionStorage.removeItem('found-again-hold');
+        sessionStorage.removeItem('found-again-checkout-items');
+        setSoldIds(nextSold); setHold(null); setReceipt(data); setCart([]); setCheckoutStatus(''); window.history.replaceState({}, '', window.location.pathname);
       })
       .catch((error) => setCheckoutStatus(error.message));
   }, []);
@@ -108,10 +130,11 @@ function App() {
     setGuideReply('Looking through the current collection…');
     setGuideInput('');
     try {
-      const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'guide', prompt: request, products }) });
+      const availableProducts = products.filter((item) => availability(item) === 'available');
+      const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'guide', prompt: request, products: availableProducts }) });
       const answer = await parseApiResponse(response);
       if (!response.ok) throw new Error(answer.error || 'The guide could not respond.');
-      const suggestions = products.filter((item) => answer.suggestedIds?.includes(item.id));
+      const suggestions = availableProducts.filter((item) => answer.suggestedIds?.includes(item.id));
       setSuggestedBundle(request.includes('bundle') || request.includes('gift') ? suggestions : []);
       setGuideReply(answer.reply || 'I found a few possible matches in the collection.');
       takeToShop();
@@ -152,9 +175,9 @@ function App() {
         <label className="search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the collection" /></label>
       </div>
       <div className="product-grid">{items.map((item) => <article className="product-card" key={item.id}>
-        <button className={`product-image ${item.accent}`} onClick={() => openProduct(item)} aria-label={`View details for ${item.title}`}><span>{item.tag}</span><div className={`object-mark photo-${activePhoto}`}>{item.category === 'Books' ? '▤' : item.category === 'Clothing' ? '⌑' : '✳'}</div><i>View details ↗</i></button>
+        <button className={`product-image ${item.accent}`} onClick={() => openProduct(item)} aria-label={`View details for ${item.title}`}><span>{item.tag}</span><b className={`availability ${availability(item)}`}>{availabilityLabel(item)}</b><div className={`object-mark photo-${activePhoto}`}>{item.category === 'Books' ? '▤' : item.category === 'Clothing' ? '⌑' : '✳'}</div><i>View details ↗</i></button>
         <div className="product-info"><div><p className="product-category">{item.category} · {item.condition}</p><h3>{item.title}</h3></div><strong>${item.price}</strong></div>
-        <p className="product-note">{item.note}</p><button className="add" onClick={() => addToCart(item)}>{cart.some((entry) => entry.id === item.id) ? 'In your bag' : 'Add to bag'} <span>+</span></button>
+        <p className="product-note">{item.note}</p><button className="add" disabled={availability(item) !== 'available'} onClick={() => addToCart(item)}>{availability(item) === 'sold' ? 'Sold' : availability(item) === 'held' ? 'Reserved' : cart.some((entry) => entry.id === item.id) ? 'In your bag' : 'Add to bag'} <span>{availability(item) === 'available' ? '+' : '—'}</span></button>
       </article>)}</div>
     </section>
 
@@ -162,7 +185,7 @@ function App() {
 
     <footer><a className="wordmark" href="#top">found <em>again</em></a><p>Good things, continued.</p><p>© 2026 Found Again</p></footer>
 
-    {showCart && <aside className="drawer"><button className="close" onClick={() => setShowCart(false)}>×</button><p className="eyebrow">{receipt ? 'ORDER CONFIRMED' : 'YOUR BAG'}</p><h2>{receipt ? 'It’s yours.' : 'Almost yours.'}</h2>{receipt ? <div className="receipt"><p>Thank you for giving a good thing another beginning.</p><p>Receipt <b>{receipt.receiptId}</b></p><p>Paid with PayPal Sandbox · ${receipt.amount}</p><button className="outline-button" onClick={() => window.print()}>Print / save receipt</button></div> : cart.length ? <><div className="bag-items">{cart.map((item) => <div key={item.id}><span className={`mini ${item.accent}`}></span><p>{item.title}<small>{item.condition}</small></p><b>${item.price}</b></div>)}</div><div className="cart-total"><span>Total</span><strong>${total}</strong></div><button className="button checkout" onClick={startCheckout}>Pay with PayPal <span>→</span></button><p className="sandbox-note">Sandbox only: payment is approved with your PayPal test buyer account. {checkoutStatus}</p></> : <p className="empty">{checkoutStatus || 'Your next favorite is waiting.'}</p>}</aside>}
+    {showCart && <aside className="drawer"><button className="close" onClick={() => setShowCart(false)}>×</button><p className="eyebrow">{receipt ? 'ORDER CONFIRMED' : 'YOUR BAG'}</p><h2>{receipt ? 'It’s yours.' : 'Almost yours.'}</h2>{receipt ? <div className="receipt"><p>Thank you for giving a good thing another beginning.</p><p>Receipt <b>{receipt.receiptId}</b></p><p>Paid with PayPal Sandbox · ${receipt.amount}</p><button className="outline-button" onClick={() => window.print()}>Print / save receipt</button></div> : cart.length ? <><div className="bag-items">{cart.map((item) => <div key={item.id}><span className={`mini ${item.accent}`}></span><p>{item.title}<small>{item.condition}</small></p><b>${item.price}</b></div>)}</div><div className="cart-total"><span>Total</span><strong>${total}</strong></div><button className="button checkout" onClick={startCheckout}>Pay with PayPal <span>→</span></button><p className="sandbox-note">Your bag does not reserve one-of-one finds. A 10-minute hold begins only after PayPal checkout opens. {checkoutStatus}</p></> : <p className="empty">{checkoutStatus || 'Your next favorite is waiting.'}</p>}</aside>}
     {showSeller && <aside className="drawer seller"><button className="close" onClick={() => { setShowSeller(false); setSellerStep('welcome'); }}>×</button><p className="eyebrow">SELLER WORKSPACE</p>
       {sellerStep === 'welcome' && <><h2>Give it another story.</h2><div className="upload-zone"><span>↑</span><b>Add item photos</b><p>AI will help draft the title, condition notes, tags, and description.</p></div><div className="seller-steps"><p><span>1</span> Upload photos and a few notes</p><p><span>2</span> Review the AI draft—nothing publishes without you</p><p><span>3</span> Publish when it feels right</p></div><button className="button" onClick={() => setSellerStep('create')}>Start a listing <span>→</span></button></>}
       {sellerStep === 'create' && <><h2>New listing.</h2><p className="seller-intro">Add the basics. In the finished product, photos will help AI create the first draft.</p><label className="file-picker">{photoName || 'Choose a photo'}<input type="file" accept="image/*" onChange={(event) => setPhotoName(event.target.files?.[0]?.name || '')} /></label><div className="listing-form"><label>Item name<input name="name" value={listing.name} onChange={updateListing} placeholder="e.g. Vintage poetry book" /></label><label>Category<select name="category" value={listing.category} onChange={updateListing}><option>Books</option><option>Clothing</option><option>Home</option><option>Accessories</option></select></label><label>Condition<select name="condition" value={listing.condition} onChange={updateListing}><option>Excellent</option><option>Very good</option><option>Gently loved</option><option>Good</option></select></label><label>Price<input name="price" value={listing.price} onChange={updateListing} type="number" min="1" placeholder="12" /></label><label>Seller notes<textarea name="notes" value={listing.notes} onChange={updateListing} placeholder="A few honest details: color, wear, why someone may love it…" /></label></div><button className="button" onClick={generateDraft}>Generate AI draft <span>→</span></button></>}
@@ -170,7 +193,7 @@ function App() {
       {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card"><span className={`mini ${draft.accent}`}></span><div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b>{draft.priceRange && <p className="draft-ai-note">AI price range: {draft.priceRange}</p>}</div></div><div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
       {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. That is the seller-to-buyer handoff we’ll show in your hackathon demo.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>See it in the shop <span>→</span></button></>}
     </aside>}
-    {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}><div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div></div><p className="image-count">{activePhoto + 1} / 4</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{[0, 1, 2, 3].map((photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}><span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span></button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ One of one</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>Add to bag <span>→</span></button><p className="gallery-note">Gallery demo: replace these four image slots with your own item photos when listing for real.</p></div></div></div>}
+    {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}><div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div></div><p className="image-count">{activePhoto + 1} / 4</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{[0, 1, 2, 3].map((photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}><span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span></button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ {availabilityLabel(selectedItem)}</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" disabled={availability(selectedItem) !== 'available'} onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>{availability(selectedItem) === 'available' ? 'Add to bag' : availability(selectedItem) === 'sold' ? 'Sold' : 'Reserved'} <span>→</span></button><p className="gallery-note">Gallery demo: replace these four image slots with your own item photos when listing for real.</p></div></div></div>}
     <button className="guide-fab" onClick={() => setShowGuide((open) => !open)} aria-label="Open Found Again guide"><span>✦</span><small>Ask</small></button>
     {showGuide && <aside className="shop-guide" aria-label="Found Again shopping guide"><button className="guide-close" onClick={() => setShowGuide(false)}>×</button><div className="guide-head"><span>✦</span><div><p className="eyebrow">FOUND AGAIN GUIDE</p><h2>A small nudge<br/><i>in the right direction.</i></h2></div></div><p className="guide-reply">{guideReply}</p>{suggestedBundle.length > 0 && <div className="bundle-proposal"><p>{suggestedBundle.map((item) => item.title).join(' + ')}</p><button onClick={addSuggestedBundle}>Add this bundle to my bag →</button></div>}<div className="guide-prompts"><button onClick={() => useGuide('books')}>Find a cozy book</button><button onClick={() => useGuide('bundle')}>Build a small bundle</button><button onClick={() => useGuide('under25')}>Show finds under $25</button></div><form onSubmit={askGuide}><input value={guideInput} onChange={(event) => setGuideInput(event.target.value)} placeholder="What are you looking for?" /><button type="submit">→</button></form><p className="guide-disclosure">Recommendations are suggestions. You always choose the items and approve the final total before PayPal checkout.</p></aside>}
   </main>
