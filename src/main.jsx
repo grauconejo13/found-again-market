@@ -37,7 +37,7 @@ function App() {
   const [zoom, setZoom] = useState(1);
   const [showGuide, setShowGuide] = useState(false);
   const [guideInput, setGuideInput] = useState('');
-  const [guideReply, setGuideReply] = useState('Tell me what you’re looking for—a cozy read, a gift, a color, or a budget—and I’ll help you begin.');
+  const [guideReply, setGuideReply] = useState('Tell me what you’re looking for—a cozy read, a gift, a color, or a budget—and I’ll help you begin. Selling instead? Open For sellers to draft and publish a listing with AI help.');
   const [suggestedBundle, setSuggestedBundle] = useState([]);
   const [checkoutStatus, setCheckoutStatus] = useState('');
   const [receipt, setReceipt] = useState(null);
