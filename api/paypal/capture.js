@@ -1,3 +1,5 @@
+import { isSupabaseConfigured, supabase } from '../lib/supabase.js';
+
 const paypalBase = () => process.env.PAYPAL_ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 async function accessToken() {
   const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString('base64');
@@ -14,6 +16,7 @@ export default async function handler(request, response) {
     const result = await fetch(`${paypalBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, { method: 'POST', headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': crypto.randomUUID() } });
     const order = await result.json();
     if (!result.ok || order.status !== 'COMPLETED') throw new Error(order.message || 'PayPal did not complete the payment.');
+    if (isSupabaseConfigured()) await supabase('rpc/complete_paypal_order', { method: 'POST', body: { p_order_id: orderId } });
     const capture = order.purchase_units?.[0]?.payments?.captures?.[0];
     return response.status(200).json({ receiptId: capture?.id || order.id, amount: capture?.amount?.value || order.purchase_units?.[0]?.amount?.value });
   } catch (error) { return response.status(500).json({ error: error.message || 'Unable to confirm your PayPal payment.' }); }
