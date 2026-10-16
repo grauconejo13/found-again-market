@@ -28,15 +28,15 @@ Copy `.env.example` to `.env` when integration keys are needed. Never commit `.e
 
 1. Create a Supabase project.
 2. In its **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql). It creates the products table, safe reservation functions, and the six starter listings.
-3. In **Project Settings → API**, copy the project URL and the `service_role` key.
+3. In **Project Settings → API Keys**, copy the project URL and a server-only **secret** key (`sb_secret_…`).
 4. Add these to Vercel (Production, Preview, and Development), then redeploy:
 
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SECRET_KEY=your-secret-key
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` is server-only. Never use a `VITE_` prefix and never place it in browser code.
+`SUPABASE_SECRET_KEY` is server-only. Never use a `VITE_` prefix and never place it in browser code. The code also accepts the legacy `SUPABASE_SERVICE_ROLE_KEY` if that is what an older project provides.
 
 For the demo, seller photos are stored with the listing as small image data. A production version should upload images to Supabase Storage and save only their URLs.
 
