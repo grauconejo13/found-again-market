@@ -13,7 +13,7 @@ Found Again is a thoughtful storefront for secondhand books, clothing, home good
 
 ## Current progress
 
-The first buyer-facing experience and interactive seller workflow are in place. Sellers can add basic item details, generate a draft, review it, and publish it directly into the storefront during the session. The guide can propose a bundle, but only adds it after the buyer explicitly confirms. PayPal Orders are created server-side from the trusted catalog—never from a browser-submitted total.
+The first buyer-facing experience and interactive seller workflow are in place. Sellers can add up to four item photos, generate a draft, review it, and publish it into the storefront. When Supabase is configured, listings persist and one-of-one items move from available to reserved during checkout, then sold after PayPal confirms payment. The guide can propose a bundle, but only adds it after the buyer explicitly confirms. PayPal Orders are always created server-side from trusted database prices—never from a browser-submitted total.
 
 ## Run locally
 
@@ -24,11 +24,28 @@ npm run dev
 
 Copy `.env.example` to `.env` when integration keys are needed. Never commit `.env`.
 
+## Enable Supabase persistence
+
+1. Create a Supabase project.
+2. In its **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql). It creates the products table, safe reservation functions, and the six starter listings.
+3. In **Project Settings → API**, copy the project URL and the `service_role` key.
+4. Add these to Vercel (Production, Preview, and Development), then redeploy:
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is server-only. Never use a `VITE_` prefix and never place it in browser code.
+
+For the demo, seller photos are stored with the listing as small image data. A production version should upload images to Supabase Storage and save only their URLs.
+
 ## Tech
 
 - React + Vite
 - PayPal Orders API (Sandbox)
-- AI listing and recommendation workflow (OpenRouter connection next)
+- OpenRouter AI listing and recommendation workflow
+- Supabase (listings and one-of-one inventory state)
 
 ## License
 
