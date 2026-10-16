@@ -15,6 +15,11 @@ const inventory = [
   { id: 5, title: 'Brass Leaf Frame', category: 'Home', condition: 'Good', price: 11, accent: 'sky', note: 'A small frame looking for its next memory.', tag: 'Little treasure' },
   { id: 6, title: 'Canvas Field Jacket', category: 'Clothing', condition: 'Very good', price: 26, accent: 'olive', note: 'Broken in beautifully, ready for more walks.', tag: 'Second season' }
 ];
+const parseApiResponse = async (response) => {
+  const text = await response.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(response.ok ? 'The service returned an unreadable response.' : 'The server is restarting or has a deployment error. Please try again in a moment.'); }
+};
 
 function App() {
   const [category, setCategory] = useState('All');
@@ -48,7 +53,7 @@ function App() {
     setSellerStep('thinking');
     try {
       const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'listing', listing }) });
-      const aiDraft = await response.json();
+      const aiDraft = await parseApiResponse(response);
       if (!response.ok) throw new Error(aiDraft.error || 'The AI draft could not be created.');
     const title = listing.name.trim() || `A Found Again ${listing.category.slice(0, -1) || 'Find'}`;
     const tag = listing.category === 'Books' ? 'A new chapter' : listing.category === 'Clothing' ? 'Second season' : 'Freshly found';
@@ -77,7 +82,7 @@ function App() {
     setCheckoutStatus('Preparing your secure PayPal checkout…');
     try {
       const response = await fetch('/api/paypal/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemIds: cart.map((item) => item.id) }) });
-      const data = await response.json();
+      const data = await parseApiResponse(response);
       if (!response.ok || !data.approveUrl) throw new Error(data.error || 'PayPal checkout is not ready yet.');
       window.location.assign(data.approveUrl);
     } catch (error) { setCheckoutStatus(error.message); }
@@ -89,7 +94,7 @@ function App() {
     setShowCart(true);
     setCheckoutStatus('Confirming your PayPal payment…');
     fetch('/api/paypal/capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }) })
-      .then(async (response) => ({ response, data: await response.json() }))
+      .then(async (response) => ({ response, data: await parseApiResponse(response) }))
       .then(({ response, data }) => {
         if (!response.ok) throw new Error(data.error || 'We could not confirm this payment.');
         setReceipt(data); setCart([]); setCheckoutStatus(''); window.history.replaceState({}, '', window.location.pathname);
@@ -104,7 +109,7 @@ function App() {
     setGuideInput('');
     try {
       const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'guide', prompt: request, products }) });
-      const answer = await response.json();
+      const answer = await parseApiResponse(response);
       if (!response.ok) throw new Error(answer.error || 'The guide could not respond.');
       const suggestions = products.filter((item) => answer.suggestedIds?.includes(item.id));
       setSuggestedBundle(request.includes('bundle') || request.includes('gift') ? suggestions : []);
