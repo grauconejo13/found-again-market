@@ -56,7 +56,7 @@ function App() {
   ), [products, category, query]);
   const total = cart.reduce((sum, item) => sum + item.price, 0);
   const holdIsActive = Boolean(hold?.expiresAt > Date.now());
-  const availability = (item) => soldIds.includes(item.id) ? 'sold' : holdIsActive && hold.itemIds.includes(item.id) ? 'held' : 'available';
+  const availability = (item) => item.availability === 'sold' || soldIds.includes(item.id) ? 'sold' : (item.availability === 'reserved' && new Date(item.reservedUntil) > new Date()) || (holdIsActive && hold.itemIds.includes(item.id)) ? 'held' : 'available';
   const availabilityLabel = (item) => availability(item) === 'sold' ? 'Sold' : availability(item) === 'held' ? 'Reserved — checkout in progress' : '1 available · one of one';
   const addToCart = (item) => {
     if (availability(item) !== 'available') return;
@@ -80,9 +80,15 @@ function App() {
     setSellerStep('review');
     } catch (error) { setSellerStep('create'); alert(error.message); }
   };
-  const publishListing = () => {
-    setProducts((current) => [{ ...draft, id: Date.now() }, ...current]);
-    setSellerStep('published');
+  const publishListing = async () => {
+    try {
+      const response = await fetch('/api/listings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+      const data = await parseApiResponse(response);
+      if (response.ok && data.product) setProducts((current) => [data.product, ...current]);
+      else if (response.status === 503) setProducts((current) => [{ ...draft, id: Date.now(), availability: 'available' }, ...current]);
+      else throw new Error(data.error || 'This listing could not be published.');
+      setSellerStep('published');
+    } catch (error) { alert(error.message); }
   };
   const openProduct = (item) => { setSelectedItem(item); setActivePhoto(0); setZoom(1); };
   const takeToShop = () => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' });
@@ -126,9 +132,16 @@ function App() {
         sessionStorage.setItem('found-again-sold', JSON.stringify(nextSold));
         sessionStorage.removeItem('found-again-hold');
         sessionStorage.removeItem('found-again-checkout-items');
+        setProducts((current) => current.map((item) => purchasedIds.map(String).includes(String(item.id)) ? { ...item, availability: 'sold' } : item));
         setSoldIds(nextSold); setHold(null); setReceipt(data); setCart([]); setCheckoutStatus(''); window.history.replaceState({}, '', window.location.pathname);
       })
       .catch((error) => setCheckoutStatus(error.message));
+  }, []);
+  useEffect(() => {
+    fetch('/api/products')
+      .then(async (response) => ({ response, data: await parseApiResponse(response) }))
+      .then(({ response, data }) => { if (response.ok && Array.isArray(data.products)) setProducts(data.products); })
+      .catch(() => {});
   }, []);
   const askGuide = async (event) => {
     event.preventDefault();
