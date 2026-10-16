@@ -13,7 +13,7 @@ Found Again is a thoughtful storefront for secondhand books, clothing, home good
 
 ## Current progress
 
-The first buyer-facing experience and interactive seller workflow are in place. Sellers can now add basic item details, generate an AI-style draft, review it, and publish it directly into the storefront during the session. The next build milestones are persistent inventory data, a real AI integration, a cart API, and PayPal Sandbox checkout.
+The first buyer-facing experience and interactive seller workflow are in place. Sellers can add basic item details, generate a draft, review it, and publish it directly into the storefront during the session. The guide can propose a bundle, but only adds it after the buyer explicitly confirms. PayPal Orders are created server-side from the trusted catalog—never from a browser-submitted total.
 
 ## Run locally
 
@@ -27,8 +27,8 @@ Copy `.env.example` to `.env` when integration keys are needed. Never commit `.e
 ## Tech
 
 - React + Vite
-- PayPal JavaScript SDK / Orders API (planned, Sandbox)
-- AI listing and recommendation workflow (planned)
+- PayPal Orders API (Sandbox)
+- AI listing and recommendation workflow (OpenRouter connection next)
 
 ## License
 
