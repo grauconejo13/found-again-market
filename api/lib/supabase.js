@@ -1,4 +1,5 @@
-const configured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+const key = () => process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const configured = () => Boolean(process.env.SUPABASE_URL && key());
 
 export const isSupabaseConfigured = configured;
 
@@ -7,8 +8,8 @@ export async function supabase(path, { method = 'GET', body, headers = {} } = {}
   const result = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
-      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      apikey: key(),
+      Authorization: `Bearer ${key()}`,
       'Content-Type': 'application/json',
       ...headers,
     },
