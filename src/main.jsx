@@ -44,11 +44,17 @@ function App() {
   const total = cart.reduce((sum, item) => sum + item.price, 0);
   const addToCart = (item) => setCart((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
   const updateListing = (event) => setListing((current) => ({ ...current, [event.target.name]: event.target.value }));
-  const generateDraft = () => {
+  const generateDraft = async () => {
+    setSellerStep('thinking');
+    try {
+      const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'listing', listing }) });
+      const aiDraft = await response.json();
+      if (!response.ok) throw new Error(aiDraft.error || 'The AI draft could not be created.');
     const title = listing.name.trim() || `A Found Again ${listing.category.slice(0, -1) || 'Find'}`;
     const tag = listing.category === 'Books' ? 'A new chapter' : listing.category === 'Clothing' ? 'Second season' : 'Freshly found';
-    setDraft({ ...listing, title, tag, accent: ['moss', 'butter', 'clay', 'lilac'][products.length % 4], note: listing.notes.trim() || `A thoughtfully chosen ${listing.category.toLowerCase()} ready for its next story.`, price: Number(listing.price) || 12 });
+    setDraft({ ...listing, title: aiDraft.title || title, tag, accent: ['moss', 'butter', 'clay', 'lilac'][products.length % 4], note: aiDraft.description || listing.notes.trim() || `A thoughtfully chosen ${listing.category.toLowerCase()} ready for its next story.`, price: Number(listing.price) || 12, tags: aiDraft.tags || [], conditionWording: aiDraft.conditionWording, priceRange: aiDraft.priceRange });
     setSellerStep('review');
+    } catch (error) { setSellerStep('create'); alert(error.message); }
   };
   const publishListing = () => {
     setProducts((current) => [{ ...draft, id: Date.now() }, ...current]);
@@ -90,15 +96,21 @@ function App() {
       })
       .catch((error) => setCheckoutStatus(error.message));
   }, []);
-  const askGuide = (event) => {
+  const askGuide = async (event) => {
     event.preventDefault();
     const request = guideInput.toLowerCase().trim();
     if (!request) return;
-    if (request.includes('book') || request.includes('read')) useGuide('books');
-    else if (request.includes('bundle') || request.includes('gift')) useGuide('bundle');
-    else if (request.includes('budget') || request.includes('under') || request.includes('cheap')) useGuide('under25');
-    else { setCategory('All'); setQuery(''); setGuideReply('I’m searching the current collection for something with that feeling. Try “cozy book,” “gift bundle,” or “under $25” for a more specific match.'); takeToShop(); }
+    setGuideReply('Looking through the current collection…');
     setGuideInput('');
+    try {
+      const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'guide', prompt: request, products }) });
+      const answer = await response.json();
+      if (!response.ok) throw new Error(answer.error || 'The guide could not respond.');
+      const suggestions = products.filter((item) => answer.suggestedIds?.includes(item.id));
+      setSuggestedBundle(request.includes('bundle') || request.includes('gift') ? suggestions : []);
+      setGuideReply(answer.reply || 'I found a few possible matches in the collection.');
+      takeToShop();
+    } catch (error) { setGuideReply(error.message); }
   };
 
   return <main>
@@ -149,7 +161,8 @@ function App() {
     {showSeller && <aside className="drawer seller"><button className="close" onClick={() => { setShowSeller(false); setSellerStep('welcome'); }}>×</button><p className="eyebrow">SELLER WORKSPACE</p>
       {sellerStep === 'welcome' && <><h2>Give it another story.</h2><div className="upload-zone"><span>↑</span><b>Add item photos</b><p>AI will help draft the title, condition notes, tags, and description.</p></div><div className="seller-steps"><p><span>1</span> Upload photos and a few notes</p><p><span>2</span> Review the AI draft—nothing publishes without you</p><p><span>3</span> Publish when it feels right</p></div><button className="button" onClick={() => setSellerStep('create')}>Start a listing <span>→</span></button></>}
       {sellerStep === 'create' && <><h2>New listing.</h2><p className="seller-intro">Add the basics. In the finished product, photos will help AI create the first draft.</p><label className="file-picker">{photoName || 'Choose a photo'}<input type="file" accept="image/*" onChange={(event) => setPhotoName(event.target.files?.[0]?.name || '')} /></label><div className="listing-form"><label>Item name<input name="name" value={listing.name} onChange={updateListing} placeholder="e.g. Vintage poetry book" /></label><label>Category<select name="category" value={listing.category} onChange={updateListing}><option>Books</option><option>Clothing</option><option>Home</option><option>Accessories</option></select></label><label>Condition<select name="condition" value={listing.condition} onChange={updateListing}><option>Excellent</option><option>Very good</option><option>Gently loved</option><option>Good</option></select></label><label>Price<input name="price" value={listing.price} onChange={updateListing} type="number" min="1" placeholder="12" /></label><label>Seller notes<textarea name="notes" value={listing.notes} onChange={updateListing} placeholder="A few honest details: color, wear, why someone may love it…" /></label></div><button className="button" onClick={generateDraft}>Generate AI draft <span>→</span></button></>}
-      {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card"><span className={`mini ${draft.accent}`}></span><div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b></div></div><div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
+      {sellerStep === 'thinking' && <><h2>Drafting with care.</h2><p className="seller-intro">The AI is turning your notes into an editable first draft.</p></>}
+      {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card"><span className={`mini ${draft.accent}`}></span><div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b>{draft.priceRange && <p className="draft-ai-note">AI price range: {draft.priceRange}</p>}</div></div><div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
       {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. That is the seller-to-buyer handoff we’ll show in your hackathon demo.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>See it in the shop <span>→</span></button></>}
     </aside>}
     {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}><div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div></div><p className="image-count">{activePhoto + 1} / 4</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{[0, 1, 2, 3].map((photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}><span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span></button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ One of one</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>Add to bag <span>→</span></button><p className="gallery-note">Gallery demo: replace these four image slots with your own item photos when listing for real.</p></div></div></div>}
