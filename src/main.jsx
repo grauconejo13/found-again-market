@@ -19,7 +19,7 @@ const inventory = [
 const parseApiResponse = async (response) => {
   const text = await response.text();
   try { return JSON.parse(text); }
-  catch { throw new Error(response.ok ? 'The service returned an unreadable response.' : 'The server is restarting or has a deployment error. Please try again in a moment.'); }
+  catch { throw new Error(response.ok ? 'We received an unreadable reply. Please try again.' : 'We couldn’t reach this service. Please try again in a moment.'); }
 };
 
 function App() {
@@ -32,6 +32,7 @@ function App() {
   const [sellerStep, setSellerStep] = useState('welcome');
   const [photoName, setPhotoName] = useState('');
   const [listingPhotos, setListingPhotos] = useState([]);
+  const [sellerError, setSellerError] = useState('');
   const [listing, setListing] = useState({ name: '', category: 'Books', condition: 'Gently loved', notes: '', price: '' });
   const [draft, setDraft] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -62,13 +63,39 @@ function App() {
     if (availability(item) !== 'available') return;
     setCart((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
   };
-  const chooseListingPhotos = (event) => {
+  const prepareListingPhoto = (file) => new Promise((resolve, reject) => {
+    const image = new Image();
+    const sourceUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const longestEdge = Math.max(image.width, image.height);
+      const scale = Math.min(1, 1000 / longestEdge);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#fffdf8';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(sourceUrl);
+      resolve(canvas.toDataURL('image/jpeg', .72));
+    };
+    image.onerror = () => { URL.revokeObjectURL(sourceUrl); reject(new Error('One of those photos could not be prepared. Please choose another image.')); };
+    image.src = sourceUrl;
+  });
+  const chooseListingPhotos = async (event) => {
     const files = Array.from(event.target.files || []).slice(0, 4);
-    setPhotoName(files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected` : '');
-    Promise.all(files.map((file) => new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(file); }))).then(setListingPhotos);
+    setSellerError('');
+    if (!files.length) { setPhotoName(''); setListingPhotos([]); return; }
+    setPhotoName(`Preparing ${files.length} photo${files.length === 1 ? '' : 's'}…`);
+    try {
+      const photos = await Promise.all(files.map(prepareListingPhoto));
+      setListingPhotos(photos);
+      setPhotoName(`${files.length} photo${files.length === 1 ? '' : 's'} ready`);
+    } catch (error) { setPhotoName(''); setListingPhotos([]); setSellerError(error.message); }
   };
   const updateListing = (event) => setListing((current) => ({ ...current, [event.target.name]: event.target.value }));
   const generateDraft = async () => {
+    setSellerError('');
     setSellerStep('thinking');
     try {
       const response = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'listing', listing }) });
@@ -78,9 +105,10 @@ function App() {
     const tag = listing.category === 'Books' ? 'A new chapter' : listing.category === 'Clothing' ? 'Second season' : 'Freshly found';
     setDraft({ ...listing, title: aiDraft.title || title, tag, accent: ['moss', 'butter', 'clay', 'lilac'][products.length % 4], note: aiDraft.description || listing.notes.trim() || `A thoughtfully chosen ${listing.category.toLowerCase()} ready for its next story.`, price: Number(listing.price) || 12, photos: listingPhotos, tags: aiDraft.tags || [], conditionWording: aiDraft.conditionWording, priceRange: aiDraft.priceRange });
     setSellerStep('review');
-    } catch (error) { setSellerStep('create'); alert(error.message); }
+    } catch (error) { setSellerStep('create'); setSellerError(error.message); }
   };
   const publishListing = async () => {
+    setSellerError('');
     try {
       const response = await fetch('/api/listings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
       const data = await parseApiResponse(response);
@@ -88,7 +116,7 @@ function App() {
       else if (response.status === 503) setProducts((current) => [{ ...draft, id: Date.now(), availability: 'available' }, ...current]);
       else throw new Error(data.error || 'This listing could not be published.');
       setSellerStep('published');
-    } catch (error) { alert(error.message); }
+    } catch (error) { setSellerError(error.message || 'We couldn’t publish this listing. Please try again.'); }
   };
   const openProduct = (item) => { setSelectedItem(item); setActivePhoto(0); setZoom(1); };
   const takeToShop = () => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' });
@@ -208,9 +236,9 @@ function App() {
     {showCart && <aside className="drawer"><button className="close" onClick={() => setShowCart(false)}>×</button><p className="eyebrow">{receipt ? 'ORDER CONFIRMED' : 'YOUR BAG'}</p><h2>{receipt ? 'It’s yours.' : 'Almost yours.'}</h2>{receipt ? <div className="receipt"><p>Thank you for giving a good thing another beginning.</p><p>Receipt <b>{receipt.receiptId}</b></p><p>Paid with PayPal Sandbox · ${receipt.amount}</p><button className="outline-button" onClick={() => window.print()}>Print / save receipt</button></div> : cart.length ? <><div className="bag-items">{cart.map((item) => <div key={item.id}><span className={`mini ${item.accent}`}></span><p>{item.title}<small>{item.condition}</small></p><b>${item.price}</b></div>)}</div><div className="cart-total"><span>Total</span><strong>${total}</strong></div><button className="button checkout" onClick={startCheckout}>Pay with PayPal <span>→</span></button><p className="sandbox-note">Your bag does not reserve one-of-one finds. A 10-minute hold begins only after PayPal checkout opens. {checkoutStatus}</p></> : <p className="empty">{checkoutStatus || 'Your next favorite is waiting.'}</p>}</aside>}
     {showSeller && <aside className="drawer seller"><button className="close" onClick={() => { setShowSeller(false); setSellerStep('welcome'); }}>×</button><p className="eyebrow">SELLER WORKSPACE</p>
       {sellerStep === 'welcome' && <><h2>Give it another story.</h2><div className="upload-zone"><span>↑</span><b>Add item photos</b><p>Add up to four photos, then use AI to draft the title, condition notes, tags, and description from your honest details.</p></div><div className="seller-steps"><p><span>1</span> Upload photos and a few notes</p><p><span>2</span> Review the AI draft—nothing publishes without you</p><p><span>3</span> Publish when it feels right</p></div><button className="button" onClick={() => setSellerStep('create')}>Start a listing <span>→</span></button></>}
-      {sellerStep === 'create' && <><h2>New listing.</h2><p className="seller-intro">Add up to four photos and the basics. Your photos appear in the buyer listing; AI uses your written notes for this honest first draft.</p><label className="file-picker">{photoName || 'Choose up to 4 photos'}<input type="file" accept="image/*" multiple onChange={chooseListingPhotos} /></label>{listingPhotos.length > 0 && <div className="listing-photo-preview">{listingPhotos.map((photo, index) => <img key={photo} src={photo} alt={`Listing preview ${index + 1}`} />)}</div>}<div className="listing-form"><label>Item name<input name="name" value={listing.name} onChange={updateListing} placeholder="e.g. Vintage poetry book" /></label><label>Category<select name="category" value={listing.category} onChange={updateListing}><option>Books</option><option>Clothing</option><option>Home</option><option>Accessories</option></select></label><label>Condition<select name="condition" value={listing.condition} onChange={updateListing}><option>Excellent</option><option>Very good</option><option>Gently loved</option><option>Good</option></select></label><label>Price<input name="price" value={listing.price} onChange={updateListing} type="number" min="1" placeholder="12" /></label><label>Seller notes<textarea name="notes" value={listing.notes} onChange={updateListing} placeholder="A few honest details: color, wear, why someone may love it…" /></label></div><button className="button" onClick={generateDraft}>Generate AI draft <span>→</span></button></>}
+      {sellerStep === 'create' && <><h2>New listing.</h2><p className="seller-intro">Add up to four photos and the basics. Your photos appear in the buyer listing; AI uses your written notes for this honest first draft.</p><label className="file-picker">{photoName || 'Choose up to 4 photos'}<input type="file" accept="image/*" multiple onChange={chooseListingPhotos} /></label>{listingPhotos.length > 0 && <div className="listing-photo-preview">{listingPhotos.map((photo, index) => <img key={photo} src={photo} alt={`Listing preview ${index + 1}`} />)}</div>}<div className="listing-form"><label>Item name<input name="name" value={listing.name} onChange={updateListing} placeholder="e.g. Vintage poetry book" /></label><label>Category<select name="category" value={listing.category} onChange={updateListing}><option>Books</option><option>Clothing</option><option>Home</option><option>Accessories</option></select></label><label>Condition<select name="condition" value={listing.condition} onChange={updateListing}><option>Excellent</option><option>Very good</option><option>Gently loved</option><option>Good</option></select></label><label>Price<input name="price" value={listing.price} onChange={updateListing} type="number" min="1" placeholder="12" /></label><label>Seller notes<textarea name="notes" value={listing.notes} onChange={updateListing} placeholder="A few honest details: color, wear, why someone may love it…" /></label></div>{sellerError && <p className="seller-error" role="alert">{sellerError}</p>}<button className="button" onClick={generateDraft}>Generate AI draft <span>→</span></button></>}
       {sellerStep === 'thinking' && <><h2>Drafting with care.</h2><p className="seller-intro">The AI is turning your notes into an editable first draft.</p></>}
-      {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card">{draft.photos?.[0] ? <img className="draft-photo" src={draft.photos[0]} alt="Listing preview" /> : <span className={`mini ${draft.accent}`}></span>}<div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b>{draft.priceRange && <p className="draft-ai-note">AI price range: {draft.priceRange}</p>}</div></div>{draft.photos?.length > 1 && <p className="seller-photo-count">{draft.photos.length} listing photos ready for buyers to view.</p>}<div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
+      {sellerStep === 'review' && draft && <><h2>Review the draft.</h2><p className="seller-intro">AI gives you a starting point. You remain the editor and decide whether it goes live.</p><div className="draft-card">{draft.photos?.[0] ? <img className="draft-photo" src={draft.photos[0]} alt="Listing preview" /> : <span className={`mini ${draft.accent}`}></span>}<div><p className="product-category">{draft.category} · {draft.condition}</p><h3>{draft.title}</h3><p>{draft.note}</p><b>${draft.price}</b>{draft.priceRange && <p className="draft-ai-note">AI price range: {draft.priceRange}</p>}</div></div>{draft.photos?.length > 1 && <p className="seller-photo-count">{draft.photos.length} listing photos ready for buyers to view.</p>}{sellerError && <p className="seller-error" role="alert">{sellerError}</p>}<div className="seller-actions"><button className="outline-button" onClick={() => setSellerStep('create')}>Edit details</button><button className="button" onClick={publishListing}>Publish listing <span>→</span></button></div></>}
       {sellerStep === 'published' && <><div className="success-mark">✓</div><h2>It’s live.</h2><p className="seller-intro"><b>{draft.title}</b> is now visible in the current collection. Preview the buyer journey next: view the item, add it to a bag, then choose PayPal checkout.</p><button className="button" onClick={() => { setShowSeller(false); setSellerStep('welcome'); document.getElementById('shop').scrollIntoView(); }}>Preview in shop <span>→</span></button></>}
     </aside>}
     {selectedItem && <div className="product-modal" role="dialog" aria-modal="true" aria-label={`${selectedItem.title} details`}><div className="detail-panel"><button className="close" onClick={() => setSelectedItem(null)}>×</button><div className="detail-gallery"><div className={`detail-image ${selectedItem.accent}`}><div className="zoom-stage" style={{ transform: `scale(${zoom})` }}>{selectedItem.photos?.[activePhoto] ? <img className="detail-listing-photo" src={selectedItem.photos[activePhoto]} alt={`${selectedItem.title}, view ${activePhoto + 1}`} /> : <div className={`object-mark angle-${activePhoto}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</div>}</div><p className="image-count">{activePhoto + 1} / {selectedItem.photos?.length || 4}</p><div className="zoom-controls"><button onClick={() => setZoom((value) => Math.max(1, value - .25))} aria-label="Zoom out">−</button><button onClick={() => setZoom((value) => Math.min(2, value + .25))} aria-label="Zoom in">+</button></div></div><div className="thumbnails">{Array.from({ length: selectedItem.photos?.length || 4 }, (_, photo) => <button key={photo} className={`${selectedItem.accent} ${activePhoto === photo ? 'chosen' : ''}`} onClick={() => { setActivePhoto(photo); setZoom(1); }} aria-label={`View photo ${photo + 1}`}>{selectedItem.photos?.[photo] ? <img src={selectedItem.photos[photo]} alt="" /> : <span className={`object-mark angle-${photo}`}>{selectedItem.category === 'Books' ? '▤' : selectedItem.category === 'Clothing' ? '⌑' : '✳'}</span>}</button>)}</div></div><div className="detail-copy"><p className="product-category">{selectedItem.category} · {selectedItem.condition}</p><h2>{selectedItem.title}</h2><p className="detail-price">${selectedItem.price}</p><p>{selectedItem.note}</p><div className="detail-meta"><span>✓ {availabilityLabel(selectedItem)}</span><span>✓ Photos reviewed by seller</span><span>✓ Ready for its next story</span></div><button className="button detail-add" disabled={availability(selectedItem) !== 'available'} onClick={() => { addToCart(selectedItem); setSelectedItem(null); setShowCart(true); }}>{availability(selectedItem) === 'available' ? 'Add to bag' : availability(selectedItem) === 'sold' ? 'Sold' : 'Reserved'} <span>→</span></button><p className="gallery-note">Your seller-uploaded photos appear here for buyers to inspect and zoom.</p></div></div></div>}
