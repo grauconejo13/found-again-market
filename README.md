@@ -7,7 +7,7 @@ Found Again is a thoughtful storefront for secondhand books, clothing, home good
 ## The product
 
 - A buyer-facing storefront for one-of-one secondhand finds
-- A seller workspace that will use AI to draft item listings from photos and seller notes
+- A seller workspace that uses AI to draft honest item listings from seller notes, while preserving up to four listing photos for buyers
 - AI recommendations for similar items and budget-friendly bundles
 - PayPal Sandbox checkout, with payment totals always shown to and explicitly approved by the buyer
 
@@ -39,6 +39,11 @@ SUPABASE_SECRET_KEY=your-secret-key
 `SUPABASE_SECRET_KEY` is server-only. Never use a `VITE_` prefix and never place it in browser code. The code also accepts the legacy `SUPABASE_SERVICE_ROLE_KEY` if that is what an older project provides.
 
 For the demo, seller photos are stored with the listing as small image data. A production version should upload images to Supabase Storage and save only their URLs.
+
+## Documentation
+
+- [Architecture and safety design](docs/ARCHITECTURE.md)
+- [Demo and sandbox testing](docs/DEMO.md)
 
 ## Tech
 
