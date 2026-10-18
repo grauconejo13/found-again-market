@@ -205,11 +205,14 @@ function App() {
         <p className="lede">Books, clothing, home pieces, and small treasures looking for their next story.</p>
         <a className="button" href="#shop">Browse finds <span>→</span></a>
       </div>
-      <div className="hero-art" aria-label="A cheerful arrangement of secondhand treasures">
-        <div className="sun"></div><div className="arch arch-one"></div><div className="arch arch-two"></div>
-        <div className="book-stack"><b>FOUND<br/>AGAIN</b><b>ONCE<br/>MORE</b><b>KEEP</b></div>
-        <div className="vase">✳</div><div className="leaf">⌁</div>
+      <div className="hero-art" aria-label="Found Again's current collection note">
+        <div className="hero-note"><p className="eyebrow">THE FOUND AGAIN EDIT · 01</p><span className="note-number">01</span><p className="hero-note-title">A collection of<br/><i>things worth keeping<br/>in motion.</i></p><div className="hero-note-rule"></div><p className="hero-note-foot">ONE-OF-ONE FINDS<br/>CAREFULLY REHOMED</p></div>
       </div>
+    </section>
+
+    <section className="seller-profile" id="seller-story">
+      <div className="seller-profile-heading"><p className="eyebrow">FROM THE SELLER</p><h2>Meet Mara.</h2></div>
+      <div className="seller-profile-copy"><span className="seller-monogram" aria-hidden="true">M</span><div><p className="seller-quote">“I keep the stories, then pass the things along.”</p><p>A careful re-homer living a long way from any penguins, Mara is selling pieces she has loved to help fund a future trip to New Zealand—where she hopes to see little penguins and support local conservation work.</p><p className="seller-goal"><b>Next-story goal</b> · New Zealand little-penguin conservation trip</p></div></div>
     </section>
 
     <section className="value-strip" id="how-it-works">
