@@ -27,7 +27,7 @@ This prevents a second buyer from completing checkout for the same used item.
 
 ## AI boundaries
 
-The Found Again Guide can answer questions and suggest matching in-stock products. A seller can ask AI to create a draft title, description, tags, condition wording, and a possible price range from the seller's written notes.
+The Found Again Guide can answer questions and suggest matching in-stock products. A seller can ask AI to create a draft title, description, tags, condition wording, and a possible price range from written notes plus clearly visible photo details.
 
 AI does not:
 
