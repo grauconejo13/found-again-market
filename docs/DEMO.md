@@ -60,5 +60,5 @@ npm run build
 - This is a single-storefront prototype, not yet a multi-seller marketplace.
 - Seller photos are small compressed data stored with the product record; production should use Supabase Storage.
 - There is no buyer/seller authentication yet.
-- The AI drafts from written seller notes. It does not currently inspect image contents.
+- The AI drafts from seller notes plus clearly visible photo details. The seller must confirm its observations before publishing.
 - Payments are Sandbox-only for the hackathon demo.
