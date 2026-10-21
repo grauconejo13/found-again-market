@@ -7,7 +7,7 @@ Found Again is a thoughtful storefront for secondhand books, clothing, home good
 ## The product
 
 - A buyer-facing storefront for one-of-one secondhand finds
-- A seller workspace that uses AI to draft honest item listings from seller notes, while preserving up to four listing photos for buyers
+- A seller workspace that uses AI to draft honest item listings from seller notes and clearly visible photo details, while preserving up to four listing photos for buyers
 - AI recommendations for similar items and budget-friendly bundles
 - PayPal Sandbox checkout, with payment totals always shown to and explicitly approved by the buyer
 
