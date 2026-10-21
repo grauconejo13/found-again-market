@@ -44,6 +44,8 @@ For the demo, seller photos are stored with the listing as small image data. A p
 
 - [Architecture and safety design](docs/ARCHITECTURE.md)
 - [Demo and sandbox testing](docs/DEMO.md)
+- [Devpost submission package](docs/DEVPOST_SUBMISSION.md)
+- [Three-minute demo video script](docs/VIDEO_SCRIPT.md)
 
 ## Tech
 
