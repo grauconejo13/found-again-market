@@ -12,11 +12,15 @@ create table if not exists public.products (
   photos jsonb not null default '[]'::jsonb,
   availability text not null default 'available' check (availability in ('available', 'reserved', 'sold')),
   reserved_until timestamptz,
-  paypal_order_id text unique,
-  created_at timestamptz not null default now()
+  paypal_order_id text,
+  created_at timestamptz not null default now(),
+  photo_count integer generated always as (jsonb_array_length(photos)) stored
 );
 
 create index if not exists products_availability_idx on public.products (availability, reserved_until);
+-- One PayPal order can reserve several one-of-one items, so this must not be unique.
+create index if not exists products_paypal_order_idx on public.products (paypal_order_id);
+create index if not exists products_created_at_idx on public.products (created_at desc);
 
 create or replace function public.reserve_products(p_ids uuid[], p_order_id text, p_reserved_until timestamptz)
 returns setof public.products
@@ -50,7 +54,7 @@ security definer
 as $$
   update public.products
   set availability = 'sold', reserved_until = null
-  where paypal_order_id = p_order_id
+  where paypal_order_id = p_order_id and availability in ('reserved', 'sold')
   returning *;
 $$;
 

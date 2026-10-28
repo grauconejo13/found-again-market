@@ -41,7 +41,7 @@ A normal product grid does not solve either problem. AI should help people make 
 
 ### One-of-one payment flow
 
-When checkout begins, the server reads trusted item prices from Supabase, creates a PayPal Sandbox order, and reserves the selected items for ten minutes. After PayPal capture succeeds, the server marks them Sold. A second buyer cannot complete checkout for the same item.
+When checkout begins, the server reads trusted item prices from Supabase, creates a PayPal Sandbox order, and reserves the selected items for ten minutes. When the buyer returns, the server re-confirms the hold before capturing—so nobody is ever charged for an item that someone else claimed after their hold expired. Capture is idempotent, a cancelled checkout releases the items immediately, and after a successful capture the items are marked Sold. A second buyer cannot complete checkout for the same item.
 
 ## How we built it
 
@@ -61,7 +61,8 @@ Supabase uses a PostgreSQL reservation function to lock selected product rows, c
 
 ### PayPal
 
-- PayPal Orders API in Sandbox creates and captures checkout orders.
+- PayPal Orders API v2 in Sandbox creates and captures checkout orders, using `payment_source.paypal.experience_context` for branding, `PAY_NOW`, and return/cancel URLs.
+- Order status is checked before capture, captures use a stable `PayPal-Request-Id` for idempotency, and `ORDER_ALREADY_CAPTURED` and `INSTRUMENT_DECLINED` are handled gracefully.
 - The buyer is redirected to PayPal to approve the exact amount.
 - A server-side capture updates the product lifecycle from available to reserved to sold.
 - A receipt panel shows the capture identifier and paid amount.
@@ -70,7 +71,7 @@ Supabase uses a PostgreSQL reservation function to lock selected product rows, c
 
 - OpenRouter provides the listing assistant and Found Again Guide.
 - The seller assistant accepts photo content plus seller notes, but is instructed to return only clearly visible observations and never invent material, brand, provenance, measurements, damage, or price.
-- The buyer guide uses the current available catalog to turn natural-language requests into an item proposal.
+- The buyer guide reads the live, available catalog on the server and turns natural-language requests (including budgets) into an item proposal. Returned item IDs are validated against real inventory, and listing text is treated as data so it can't steer the model.
 - AI can recommend; it cannot alter the cart, create a payment, or capture a payment.
 
 ## Trust and safety choices
@@ -123,3 +124,9 @@ AI is most useful here when it reduces repetitive work while preserving human ju
 - Live demo: https://found-again-market.vercel.app
 - Source code: https://github.com/grauconejo13/found-again-market
 - Demo video: _Add public YouTube URL before submitting_
+
+## Testing instructions for judges
+
+Paste this into the Devpost "testing instructions" field and fill in the Sandbox buyer login (Sandbox credentials are test-only and safe to share):
+
+> Open https://found-again-market.vercel.app. Ask the guide (✦ Ask) for something like "a cozy gift under $25" and add its proposal to your bag, or add any item directly. Choose **Pay with PayPal** and sign in with this PayPal **Sandbox** buyer account: `EMAIL` / `PASSWORD`. Approve the payment to see the receipt and the item marked Sold. To try the seller side, open **Sell**, add a photo and a few notes, generate the AI draft, then publish it. No real money is involved.

@@ -17,17 +17,25 @@ The first buyer-facing experience and interactive seller workflow are in place. 
 
 ## Run locally
 
+The fastest way to try Found Again is the hosted demo: https://found-again-market.vercel.app
+
+To run it locally with the AI guide and PayPal checkout working, use the Vercel CLI so the `api/` functions run too:
+
 ```bash
 npm install
-npm run dev
+cp .env.example .env   # add your Sandbox and API keys
+npx vercel dev         # or: npm run dev:full
 ```
 
-Copy `.env.example` to `.env` when integration keys are needed. Never commit `.env`.
+`npm run dev` starts only the Vite storefront. The `/api` routes (AI, listings, PayPal) are not available in that mode, so the shop falls back to its built-in starter collection.
+
+Never commit `.env`.
 
 ## Enable Supabase persistence
 
 1. Create a Supabase project.
 2. In its **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql). It creates the products table, safe reservation functions, and the six starter listings.
+   - **Already set up from an earlier version?** Run [`supabase/migrations/002_demo_hardening.sql`](supabase/migrations/002_demo_hardening.sql) once instead. It lets one checkout include several items and keeps product lists small.
 3. In **Project Settings → API Keys**, copy the project URL and a server-only **secret** key (`sb_secret_…`).
 4. Add these to Vercel (Production, Preview, and Development), then redeploy:
 
