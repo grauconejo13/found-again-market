@@ -9,6 +9,7 @@
 5. Add an available item to the bag and select **Pay with PayPal**.
 6. Sign in to PayPal Sandbox with a Sandbox personal buyer account—not a real PayPal account.
 7. Approve the payment. Back in Found Again, the receipt appears and the purchased item is marked Sold.
+8. Optional: start another checkout and choose **Cancel and return** on PayPal. The bag is still there and the item is immediately available again—nothing was charged.
 
 ## Required environment variables
 
@@ -46,8 +47,10 @@ The SQL script creates the products table, safe one-of-one reservation function,
 
 ```bash
 npm install
-npm run dev
+npx vercel dev
 ```
+
+Use `vercel dev` rather than `npm run dev`; plain Vite does not run the `api/` functions, so AI and checkout won't work.
 
 Run a production build check with:
 
@@ -58,6 +61,7 @@ npm run build
 ## Known prototype boundaries
 
 - This is a single-storefront prototype, not yet a multi-seller marketplace.
+- Rate limits are per server instance; the hourly listing cap is enforced in Supabase and holds everywhere.
 - Seller photos are small compressed data stored with the product record; production should use Supabase Storage.
 - There is no buyer/seller authentication yet.
 - The AI drafts from seller notes plus clearly visible photo details. The seller must confirm its observations before publishing.

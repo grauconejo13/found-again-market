@@ -22,6 +22,14 @@ export async function supabase(path, { method = 'GET', body, headers = {} } = {}
   return data;
 }
 
+// Photos are served one at a time from /api/photo so product lists stay small.
+// `v` changes whenever a photo set changes, which keeps long browser caching safe.
+const photoUrls = (row) => {
+  const count = Number.isFinite(row.photo_count) ? row.photo_count : Array.isArray(row.photos) ? row.photos.length : 0;
+  const version = encodeURIComponent(String(row.created_at || '').replace(/\D/g, '').slice(0, 14));
+  return Array.from({ length: Math.min(count, 4) }, (_, index) => `/api/photo?id=${row.id}&i=${index}&v=${version}`);
+};
+
 export const toClientProduct = (row) => ({
   id: row.id,
   title: row.title,
@@ -31,7 +39,7 @@ export const toClientProduct = (row) => ({
   accent: row.accent || 'moss',
   note: row.description,
   tag: row.tag || 'Found again',
-  photos: row.photos || [],
+  photos: photoUrls(row),
   availability: row.availability,
   reservedUntil: row.reserved_until,
 });
