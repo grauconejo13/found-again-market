@@ -7,17 +7,19 @@ const markSold = async (orderId) => {
   await supabase('rpc/complete_paypal_order', { method: 'POST', body: { p_order_id: orderId } });
 };
 
-// Re-confirm and briefly extend this order's hold in one statement. Only rows still
-// reserved by this order and not yet expired match, so an expired hold that another
-// buyer has since claimed can never be charged for.
+// Re-confirm this order's hold before charging. Only rows still reserved by this order
+// and not yet expired count, so an expired hold that another buyer has since claimed can
+// never be charged for. Holds about to lapse are topped up to a short capture window, but
+// a longer remaining hold is never shortened (a retry keeps the full 10-minute window).
 async function confirmHold(orderId, expectedCount) {
   if (!isSupabaseConfigured()) return true;
-  const now = new Date().toISOString();
-  const until = new Date(Date.now() + 2 * 60 * 1000).toISOString();
-  const rows = await supabase(
-    `products?paypal_order_id=eq.${orderId}&availability=eq.reserved&reserved_until=gt.${encodeURIComponent(now)}&select=id`,
-    { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: { reserved_until: until } },
-  );
+  const now = encodeURIComponent(new Date().toISOString());
+  const captureWindow = new Date(Date.now() + 2 * 60 * 1000).toISOString();
+  const mine = `products?paypal_order_id=eq.${orderId}&availability=eq.reserved&reserved_until=gt.${now}`;
+  await supabase(`${mine}&reserved_until=lt.${encodeURIComponent(captureWindow)}`, {
+    method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: { reserved_until: captureWindow },
+  });
+  const rows = await supabase(`${mine}&select=id`);
   return rows.length > 0 && rows.length === expectedCount;
 }
 
@@ -39,6 +41,13 @@ export default async function handler(request, response) {
 
     // 2. Never charge for an item whose hold has lapsed.
     if (!(await confirmHold(orderId, orderItemCount(current.data)))) {
+      // An overlapping request (e.g. a refresh) may have just captured and marked the items
+      // sold. Ask PayPal again before telling the buyer they were not charged.
+      const latest = await getOrder(orderId);
+      if (latest.ok && latest.data.status === 'COMPLETED') {
+        await markSold(orderId);
+        return response.status(200).json({ ...receiptFrom(latest.data), alreadyCaptured: true });
+      }
       await releaseHold(orderId).catch(() => {});
       return response.status(409).json({ error: 'Your 10-minute hold ended before payment was confirmed, so you were not charged. Please check the collection and try again.', holdExpired: true });
     }
