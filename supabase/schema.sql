@@ -61,9 +61,8 @@ $$;
 alter table public.products enable row level security;
 
 insert into public.products (title, category, condition, price_cents, description, tag, accent) values
-  ('The Secret Garden', 'Books', 'Gently loved', 1200, 'A well-kept classic with a little history in its pages.', 'Cozy classic', 'moss'),
-  ('Ceramic Daisy Mug', 'Home', 'Excellent', 900, 'Sunny mornings, already included.', 'Morning ritual', 'butter'),
-  ('Woven Market Tote', 'Accessories', 'Very good', 1800, 'A sturdy, easygoing carryall for market days.', 'Everyday find', 'clay'),
-  ('The Art of Simple Food', 'Books', 'Gently loved', 1400, 'For slow dinners and notes in the margin.', 'Kitchen shelf', 'lilac'),
-  ('Brass Leaf Frame', 'Home', 'Good', 1100, 'A small frame looking for its next memory.', 'Little treasure', 'sky'),
-  ('Canvas Field Jacket', 'Clothing', 'Very good', 2600, 'Broken in beautifully, ready for more walks.', 'Second season', 'olive');
+  ('Shark-Print Lanyard & Coin Purse', 'Accessories', 'Very good', 1200, 'A playful shark-print lanyard with a matching coin purse and patch.', 'Playful carry', 'sky'),
+  ('Dad Jokes Novelty Pin', 'Accessories', 'Good', 500, 'A bright little conversation piece for a jacket, bag, or pin board.', 'Pocket-sized grin', 'butter'),
+  ('Striped Knit Cuff', 'Accessories', 'Very good', 1000, 'A textured knit cuff with a colorful stripe pattern and soft feel.', 'Handmade texture', 'lilac'),
+  ('Woven Leather Crossbody Bag', 'Accessories', 'Good', 2400, 'A colorful woven leather crossbody with an adjustable strap and zipper pockets.', 'Everyday carry', 'clay'),
+  ('Hand-Painted Floral Teacup Set', 'Home', 'Excellent', 1800, 'A painted floral teacup and matching saucer in cheerful reds, yellow, and aqua.', 'Morning ritual', 'butter');

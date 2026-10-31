@@ -7,79 +7,67 @@ import './product-detail.css';
 import './shop-guide.css';
 import './guide-overrides.css';
 import './receipt.css';
-import secretGardenImage from './assets/secret-garden.svg';
-import ceramicDaisyMugImage from './assets/ceramic-daisy-mug.svg';
-import wovenMarketToteImage from './assets/woven-market-tote.svg';
-import artOfSimpleFoodImage from './assets/art-of-simple-food.svg';
-import brassLeafFrameImage from './assets/brass-leaf-frame.svg';
-import canvasFieldJacketImage from './assets/canvas-field-jacket.svg';
+import sharkLanyardSetImage from './assets/products/shark-lanyard-set.jpg';
+import dadJokesPinImage from './assets/products/dad-jokes-pin.jpg';
+import stripedKnitCuffImage from './assets/products/striped-knit-cuff.jpg';
+import wovenLeatherCrossbodyImage from './assets/products/woven-leather-crossbody.jpg';
+import floralTeacupSetImage from './assets/products/floral-teacup-set.jpg';
 
 const inventory = [
   {
     id: 1,
-    title: 'The Secret Garden',
-    category: 'Books',
-    condition: 'Gently loved',
+    title: 'Shark-Print Lanyard & Coin Purse',
+    category: 'Accessories',
+    condition: 'Very good',
     price: 12,
-    accent: 'moss',
-    note: 'A well-kept classic with a little history in its pages.',
-    tag: 'Cozy classic',
-    photos: [secretGardenImage],
+    accent: 'sky',
+    note: 'A playful shark-print lanyard with a matching coin purse and patch.',
+    tag: 'Playful carry',
+    photos: [sharkLanyardSetImage],
   },
   {
     id: 2,
-    title: 'Ceramic Daisy Mug',
-    category: 'Home',
-    condition: 'Excellent',
-    price: 9,
+    title: 'Dad Jokes Novelty Pin',
+    category: 'Accessories',
+    condition: 'Good',
+    price: 5,
     accent: 'butter',
-    note: 'Sunny mornings, already included.',
-    tag: 'Morning ritual',
-    photos: [ceramicDaisyMugImage],
+    note: 'A bright little conversation piece for a jacket, bag, or pin board.',
+    tag: 'Pocket-sized grin',
+    photos: [dadJokesPinImage],
   },
   {
     id: 3,
-    title: 'Woven Market Tote',
+    title: 'Striped Knit Cuff',
     category: 'Accessories',
     condition: 'Very good',
-    price: 18,
-    accent: 'clay',
-    note: 'A sturdy, easygoing carryall for market days.',
-    tag: 'Everyday find',
-    photos: [wovenMarketToteImage],
+    price: 10,
+    accent: 'lilac',
+    note: 'A textured knit cuff with a colorful stripe pattern and soft feel.',
+    tag: 'Handmade texture',
+    photos: [stripedKnitCuffImage],
   },
   {
     id: 4,
-    title: 'The Art of Simple Food',
-    category: 'Books',
-    condition: 'Gently loved',
-    price: 14,
-    accent: 'lilac',
-    note: 'For slow dinners and notes in the margin.',
-    tag: 'Kitchen shelf',
-    photos: [artOfSimpleFoodImage],
+    title: 'Woven Leather Crossbody Bag',
+    category: 'Accessories',
+    condition: 'Good',
+    price: 24,
+    accent: 'clay',
+    note: 'A colorful woven leather crossbody with an adjustable strap and zipper pockets.',
+    tag: 'Everyday carry',
+    photos: [wovenLeatherCrossbodyImage],
   },
   {
     id: 5,
-    title: 'Brass Leaf Frame',
+    title: 'Hand-Painted Floral Teacup Set',
     category: 'Home',
-    condition: 'Good',
-    price: 11,
-    accent: 'sky',
-    note: 'A small frame looking for its next memory.',
-    tag: 'Little treasure',
-    photos: [brassLeafFrameImage],
-  },
-  {
-    id: 6,
-    title: 'Canvas Field Jacket',
-    category: 'Clothing',
-    condition: 'Very good',
-    price: 26,
-    accent: 'olive',
-    note: 'Broken in beautifully, ready for more walks.',
-    tag: 'Second season',
-    photos: [canvasFieldJacketImage],
+    condition: 'Excellent',
+    price: 18,
+    accent: 'butter',
+    note: 'A painted floral teacup and matching saucer in cheerful reds, yellow, and aqua.',
+    tag: 'Morning ritual',
+    photos: [floralTeacupSetImage],
   },
 ];
 
