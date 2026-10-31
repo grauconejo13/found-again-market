@@ -7,6 +7,12 @@ import './product-detail.css';
 import './shop-guide.css';
 import './guide-overrides.css';
 import './receipt.css';
+import secretGardenImage from './assets/secret-garden.svg';
+import ceramicDaisyMugImage from './assets/ceramic-daisy-mug.svg';
+import wovenMarketToteImage from './assets/woven-market-tote.svg';
+import artOfSimpleFoodImage from './assets/art-of-simple-food.svg';
+import brassLeafFrameImage from './assets/brass-leaf-frame.svg';
+import canvasFieldJacketImage from './assets/canvas-field-jacket.svg';
 
 const inventory = [
   {
@@ -18,6 +24,7 @@ const inventory = [
     accent: 'moss',
     note: 'A well-kept classic with a little history in its pages.',
     tag: 'Cozy classic',
+    photos: [secretGardenImage],
   },
   {
     id: 2,
@@ -28,6 +35,7 @@ const inventory = [
     accent: 'butter',
     note: 'Sunny mornings, already included.',
     tag: 'Morning ritual',
+    photos: [ceramicDaisyMugImage],
   },
   {
     id: 3,
@@ -38,6 +46,7 @@ const inventory = [
     accent: 'clay',
     note: 'A sturdy, easygoing carryall for market days.',
     tag: 'Everyday find',
+    photos: [wovenMarketToteImage],
   },
   {
     id: 4,
@@ -48,6 +57,7 @@ const inventory = [
     accent: 'lilac',
     note: 'For slow dinners and notes in the margin.',
     tag: 'Kitchen shelf',
+    photos: [artOfSimpleFoodImage],
   },
   {
     id: 5,
@@ -58,6 +68,7 @@ const inventory = [
     accent: 'sky',
     note: 'A small frame looking for its next memory.',
     tag: 'Little treasure',
+    photos: [brassLeafFrameImage],
   },
   {
     id: 6,
@@ -68,6 +79,7 @@ const inventory = [
     accent: 'olive',
     note: 'Broken in beautifully, ready for more walks.',
     tag: 'Second season',
+    photos: [canvasFieldJacketImage],
   },
 ];
 

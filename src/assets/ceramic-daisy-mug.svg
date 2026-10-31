@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Ceramic daisy mug</title>
+  <desc id="desc">A creamy yellow ceramic mug decorated with white daisies.</desc>
+  <rect width="800" height="1000" fill="#f2e6a9"/>
+  <ellipse cx="406" cy="822" rx="270" ry="52" fill="#d8c56f" opacity=".42"/>
+  <path d="M230 296h340v402c0 96-76 148-170 148s-170-52-170-148V296Z" fill="#fffaf0" stroke="#35493d" stroke-width="13"/>
+  <path d="M570 390h79c106 0 114 235-15 235h-64" fill="none" stroke="#35493d" stroke-width="13"/>
+  <ellipse cx="400" cy="297" rx="170" ry="53" fill="#fffdf5" stroke="#35493d" stroke-width="13"/>
+  <g fill="#fff"><circle cx="347" cy="486" r="36"/><circle cx="397" cy="450" r="36"/><circle cx="447" cy="486" r="36"/><circle cx="428" cy="545" r="36"/><circle cx="365" cy="545" r="36"/></g>
+  <circle cx="397" cy="501" r="27" fill="#e7ba43"/>
+  <g transform="translate(-28 124)" fill="#fff"><circle cx="347" cy="486" r="28"/><circle cx="397" cy="450" r="28"/><circle cx="447" cy="486" r="28"/><circle cx="428" cy="545" r="28"/><circle cx="365" cy="545" r="28"/></g>
+  <circle cx="369" cy="625" r="21" fill="#e7ba43"/>
+</svg>

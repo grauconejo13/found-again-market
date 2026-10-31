@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Canvas field jacket</title>
+  <desc id="desc">An olive canvas field jacket with four pockets.</desc>
+  <rect width="800" height="1000" fill="#c9cfaf"/>
+  <ellipse cx="400" cy="873" rx="275" ry="48" fill="#737d56" opacity=".32"/>
+  <path d="M329 195h142l43 98 146 100-59 462H199l-59-462 146-100 43-98Z" fill="#68734a" stroke="#384329" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M329 195l71 128 71-128M400 323v532" fill="none" stroke="#bec48d" stroke-width="12"/>
+  <path d="M202 433l87 44M598 433l-87 44" stroke="#bec48d" stroke-width="11"/>
+  <g fill="#768154" stroke="#384329" stroke-width="10"><path d="M251 501h112v104H251Z"/><path d="M437 501h112v104H437Z"/><path d="M251 652h112v104H251Z"/><path d="M437 652h112v104H437Z"/></g>
+  <g fill="#d9d2a4"><circle cx="400" cy="390" r="8"/><circle cx="400" cy="453" r="8"/><circle cx="400" cy="516" r="8"/></g>
+</svg>

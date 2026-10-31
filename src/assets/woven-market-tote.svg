@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Woven market tote</title>
+  <desc id="desc">A warm brown woven tote bag with rounded handles.</desc>
+  <rect width="800" height="1000" fill="#d9aa8a"/>
+  <ellipse cx="400" cy="855" rx="285" ry="55" fill="#a9684b" opacity=".3"/>
+  <path d="M217 336c2-179 364-179 366 0" fill="none" stroke="#6a402e" stroke-width="36" stroke-linecap="round"/>
+  <path d="M150 370h500l-45 423c-8 75-61 101-205 101S203 868 195 793l-45-423Z" fill="#b86f4e" stroke="#6a402e" stroke-width="13"/>
+  <g stroke="#e2ad83" stroke-width="18" opacity=".9"><path d="M166 466h468M175 535h450M181 604h438M188 673h424M195 742h410"/><path d="M260 387l24 490M350 381l11 506M440 381l-11 506M540 387l-24 490"/></g>
+  <path d="M155 371h494" stroke="#f0c59d" stroke-width="11"/>
+</svg>

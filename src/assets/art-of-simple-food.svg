@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">The Art of Simple Food cookbook</title>
+  <desc id="desc">A lilac cookbook with a lemon illustration.</desc>
+  <rect width="800" height="1000" fill="#ded3e3"/>
+  <rect x="152" y="130" width="496" height="744" rx="12" fill="#77596d"/>
+  <rect x="179" y="154" width="442" height="696" rx="4" fill="#f6f0e7"/>
+  <ellipse cx="400" cy="424" rx="116" ry="91" fill="#e6be50" stroke="#617053" stroke-width="11"/>
+  <path d="M400 334c14 42 14 89 0 180M302 422c65 15 132 15 196 0" stroke="#f8dc77" stroke-width="9"/>
+  <path d="M428 315c40-59 92-43 96-6-42 35-68 32-96 6Z" fill="#778d61"/>
+  <text x="400" y="622" fill="#77596d" font-family="Georgia, serif" font-size="48" text-anchor="middle">THE ART OF</text>
+  <text x="400" y="680" fill="#77596d" font-family="Georgia, serif" font-size="58" text-anchor="middle">SIMPLE FOOD</text>
+  <path d="M278 735h244" stroke="#c8b7c7" stroke-width="4"/>
+  <text x="400" y="775" fill="#88798a" font-family="Arial, sans-serif" font-size="18" letter-spacing="6" text-anchor="middle">SLOW KITCHEN NOTES</text>
+</svg>

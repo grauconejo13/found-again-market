@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Brass leaf frame</title>
+  <desc id="desc">A brass-colored photo frame containing a botanical leaf drawing.</desc>
+  <rect width="800" height="1000" fill="#c8d9df"/>
+  <ellipse cx="400" cy="862" rx="258" ry="46" fill="#7d9da8" opacity=".32"/>
+  <rect x="159" y="142" width="482" height="694" rx="12" fill="#ad812f" stroke="#694f25" stroke-width="15"/>
+  <rect x="195" y="181" width="410" height="616" fill="#f5f0df" stroke="#d1b46d" stroke-width="14"/>
+  <path d="M398 678V292M398 464c-120-91-169-11-89 25M398 528c117-95 172-8 87 31M398 378c-80-62-128-17-70 20M398 620c-87 16-105 63-22 50" fill="none" stroke="#607a5d" stroke-width="13" stroke-linecap="round"/>
+  <path d="M398 292c20-45 67-55 85-22-27 41-55 45-85 22Z" fill="#7c9b6a"/>
+  <circle cx="399" cy="726" r="12" fill="#ad812f"/>
+</svg>
