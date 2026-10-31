@@ -26,7 +26,7 @@ The frontend is a Vite/React application deployed with Vercel. The `api/` direct
 3. When a buyer starts PayPal checkout, the server reads trusted titles and prices from Supabase and creates a PayPal order.
 4. The server calls the `reserve_products` PostgreSQL function. It locks the requested rows, verifies every item is available, and reserves them for ten minutes.
 5. When the buyer returns from PayPal, the server first asks PayPal for the order's status. If it is already `COMPLETED` (for example after a page refresh), it simply returns the receipt.
-6. Before capturing, the server re-confirms the hold in one atomic update: every item must still be reserved by *this* order and not yet expired. If the hold lapsed, the buyer is **not charged**, any remaining hold is released, and they are asked to try again.
+6. Before capturing, the server re-confirms the hold in one atomic update: every item must still be reserved by _this_ order and not yet expired. If the hold lapsed, the buyer is **not charged**, any remaining hold is released, and they are asked to try again.
 7. The capture uses a stable `PayPal-Request-Id` (`capture-<orderId>`), so retries are idempotent on PayPal's side.
 8. After PayPal confirms capture, the server calls `complete_paypal_order`, which marks the reserved items `sold`.
 9. If the buyer cancels on PayPal, `/api/paypal/release` returns their items to the collection right away instead of leaving them reserved for ten minutes.
