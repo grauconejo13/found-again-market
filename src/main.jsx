@@ -83,6 +83,10 @@ const inventory = [
   },
 ];
 
+const demoPhotosByTitle = new Map(
+  inventory.map(({ title, photos }) => [title, photos]),
+);
+
 const MAX_LISTING_PHOTOS = 4;
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const money = (value) => `$${(Math.round(Number(value || 0) * 100) / 100).toFixed(2)}`;
@@ -489,7 +493,18 @@ function App() {
         data: await parseApiResponse(response),
       }))
       .then(({ response, data }) => {
-        if (response.ok && Array.isArray(data.products)) setProducts(data.products);
+        if (response.ok && Array.isArray(data.products)) {
+          setProducts(
+            data.products.map((product) =>
+              product.photos?.length
+                ? product
+                : {
+                    ...product,
+                    photos: demoPhotosByTitle.get(product.title) || [],
+                  },
+            ),
+          );
+        }
       })
       .catch(() => {});
   useEffect(() => {
