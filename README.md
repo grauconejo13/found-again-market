@@ -37,7 +37,7 @@ Never commit `.env`.
 npm test
 ```
 
-17 API tests run offline in about a second, with no keys needed. They cover checkout pricing, bundle reservations, expired and overlapping holds, idempotent capture, cancel and release, photo serving, listing limits, and the AI guide's inventory checks. PayPal and OpenRouter are stubbed, and Supabase is an in-memory stand-in that applies the same filters as the real API.
+18 API tests run offline in about a second, with no keys needed. They cover checkout pricing, bundle reservations, expired and overlapping holds, idempotent capture, cancel and release, photo serving, seller-access protection, listing limits, and the AI guide's inventory checks. PayPal and OpenRouter are stubbed, and Supabase is an in-memory stand-in that applies the same filters as the real API.
 
 ## Enable Supabase persistence
 
