@@ -358,6 +358,41 @@ function App() {
       input.value = '';
     }
   };
+  const addListingPhoto = async (item, event) => {
+    const input = event.currentTarget;
+    const [file] = Array.from(input.files || []);
+    if (!file) return;
+    setSellerError('');
+    setManageMessage('');
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      setSellerError('Use a JPEG, PNG, or WebP image for this listing.');
+      input.value = '';
+      return;
+    }
+    setListingActionId(item.id);
+    try {
+      const photo = await prepareListingPhoto(file);
+      const response = await fetch('/api/listings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, photo, photoAction: 'append' }),
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.product)
+        throw new Error(data.error || 'This listing photo could not be added.');
+      setProducts((current) =>
+        current.map((entry) =>
+          String(entry.id) === String(item.id) ? data.product : entry,
+        ),
+      );
+      setManageMessage(`${item.title} now has ${data.product.photos.length} photos.`);
+    } catch (error) {
+      setSellerError(error.message || 'This listing photo could not be added.');
+    } finally {
+      setListingActionId(null);
+      input.value = '';
+    }
+  };
   const removeListing = async (item) => {
     if (String(pendingDeleteId) !== String(item.id)) {
       setPendingDeleteId(item.id);
@@ -998,6 +1033,19 @@ function App() {
                                 onChange={(event) => replaceCoverPhoto(item, event)}
                               />
                             </label>
+                            {(item.photos?.length || 0) < MAX_LISTING_PHOTOS && (
+                              <label className="replace-photo-button">
+                                {isWorking
+                                  ? 'Updating…'
+                                  : `Add photo · ${item.photos?.length || 0}/${MAX_LISTING_PHOTOS}`}
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  disabled={isWorking}
+                                  onChange={(event) => addListingPhoto(item, event)}
+                                />
+                              </label>
+                            )}
                             {confirmingDelete ? (
                               <span className="remove-confirm">
                                 Remove permanently?

@@ -30,7 +30,7 @@ const findAvailableListing = (id) =>
   supabase(`products?select=*&id=eq.${id}&availability=eq.available&limit=1`);
 
 async function replaceCoverPhoto(request, response) {
-  const { id, photo } = request.body || {};
+  const { id, photo, photoAction = 'replace' } = request.body || {};
   if (!UUID.test(String(id || '')))
     return response.status(400).json({ error: 'Choose a valid listing first.' });
   if (!isPhoto(photo) || photo.length > MAX_PHOTO_BYTES)
@@ -44,10 +44,22 @@ async function replaceCoverPhoto(request, response) {
         error: 'Only available listings can be changed. This one is reserved or sold.',
       });
     const existingPhotos = Array.isArray(current[0].photos) ? current[0].photos : [];
+    if (photoAction === 'append' && existingPhotos.length >= 4)
+      return response
+        .status(400)
+        .json({ error: 'A listing can have up to four photos.' });
+    const nextPhotos =
+      photoAction === 'append'
+        ? [...existingPhotos, photo]
+        : [photo, ...existingPhotos.slice(1, 4)];
+    if (nextPhotos.reduce((total, item) => total + item.length, 0) > MAX_PHOTO_BYTES)
+      return response.status(413).json({
+        error: 'These listing photos are too large together. Choose a smaller image.',
+      });
     const rows = await supabase(`products?id=eq.${id}&availability=eq.available`, {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
-      body: { photos: [photo, ...existingPhotos.slice(1, 4)] },
+      body: { photos: nextPhotos },
     });
     if (!rows[0])
       return response.status(409).json({
