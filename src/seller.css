@@ -200,6 +200,41 @@
   gap: 0.45rem;
 }
 
+.manage-edit-form {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.manage-edit-form label {
+  display: grid;
+  font: 0.53rem var(--mono);
+  gap: 0.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.manage-edit-form input,
+.manage-edit-form select,
+.manage-edit-form textarea {
+  background: #fffdf8;
+  border: 1px solid #c9c1af;
+  color: var(--ink);
+  font: 0.75rem var(--sans);
+  padding: 0.45rem;
+  text-transform: none;
+}
+
+.manage-edit-form textarea {
+  min-height: 58px;
+  resize: vertical;
+}
+
+.manage-edit-form .manage-edit-note,
+.manage-edit-form .manage-actions {
+  grid-column: 1 / -1;
+}
+
 .replace-photo-button,
 .text-button,
 .remove-button {

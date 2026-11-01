@@ -29,6 +29,50 @@ const manageRateLimit = (request, response) =>
 const findAvailableListing = (id) =>
   supabase(`products?select=*&id=eq.${id}&availability=eq.available&limit=1`);
 
+async function updateListingDetails(request, response) {
+  const { id, details } = request.body || {};
+  if (!UUID.test(String(id || '')))
+    return response.status(400).json({ error: 'Choose a valid listing first.' });
+  const title = clean(details?.title, 120);
+  const price = Math.round(Number(details?.price) * 100) / 100;
+  if (!title || !Number.isFinite(price) || price <= 0 || price > MAX_PRICE)
+    return response.status(400).json({
+      error: `Add a title and a price between $0.01 and $${MAX_PRICE.toLocaleString()}.`,
+    });
+  if (!categories.has(details?.category) || !conditions.has(details?.condition))
+    return response
+      .status(400)
+      .json({ error: 'Choose a valid category and condition.' });
+  try {
+    const current = await findAvailableListing(id);
+    if (!current[0])
+      return response.status(409).json({
+        error: 'Only available listings can be changed. This one is reserved or sold.',
+      });
+    const rows = await supabase(`products?id=eq.${id}&availability=eq.available`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: {
+        title,
+        category: details.category,
+        condition: details.condition,
+        price_cents: Math.round(price * 100),
+        description: clean(details.note, 600),
+      },
+    });
+    if (!rows[0])
+      return response.status(409).json({
+        error:
+          'This listing changed while you were editing it. Please refresh and try again.',
+      });
+    return response.status(200).json({ product: toClientProduct(rows[0]) });
+  } catch (error) {
+    return response
+      .status(500)
+      .json({ error: error.message || 'Unable to update this listing.' });
+  }
+}
+
 async function replaceCoverPhoto(request, response) {
   const { id, photo, photoAction = 'replace' } = request.body || {};
   if (!UUID.test(String(id || '')))
@@ -100,6 +144,7 @@ export default async function handler(request, response) {
     return response.status(503).json({ error: 'Supabase is not configured yet.' });
   if (request.method === 'PATCH') {
     if (!manageRateLimit(request, response)) return;
+    if (request.body?.details) return updateListingDetails(request, response);
     return replaceCoverPhoto(request, response);
   }
   if (request.method === 'DELETE') {

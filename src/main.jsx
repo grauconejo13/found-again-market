@@ -119,6 +119,14 @@ function App() {
   const [listingActionId, setListingActionId] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [manageMessage, setManageMessage] = useState('');
+  const [editingListingId, setEditingListingId] = useState(null);
+  const [listingEdits, setListingEdits] = useState({
+    title: '',
+    category: 'Home',
+    condition: 'Good',
+    price: '',
+    note: '',
+  });
   const [listing, setListing] = useState({
     name: '',
     category: 'Books',
@@ -416,6 +424,51 @@ function App() {
       setManageMessage(`${item.title} was removed from the collection.`);
     } catch (error) {
       setSellerError(error.message || 'This listing could not be removed.');
+    } finally {
+      setListingActionId(null);
+    }
+  };
+  const beginListingEdit = (item) => {
+    setPendingDeleteId(null);
+    setSellerError('');
+    setManageMessage('');
+    setListingEdits({
+      title: item.title,
+      category: item.category,
+      condition: item.condition,
+      price: String(item.price),
+      note: item.note || '',
+    });
+    setEditingListingId(item.id);
+  };
+  const updateListingEdits = (event) =>
+    setListingEdits((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  const saveListingEdits = async (item, event) => {
+    event.preventDefault();
+    setSellerError('');
+    setManageMessage('');
+    setListingActionId(item.id);
+    try {
+      const response = await fetch('/api/listings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, details: listingEdits }),
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.product)
+        throw new Error(data.error || 'This listing could not be updated.');
+      setProducts((current) =>
+        current.map((entry) =>
+          String(entry.id) === String(item.id) ? data.product : entry,
+        ),
+      );
+      setEditingListingId(null);
+      setManageMessage(`${data.product.title} has been updated.`);
+    } catch (error) {
+      setSellerError(error.message || 'This listing could not be updated.');
     } finally {
       setListingActionId(null);
     }
@@ -926,6 +979,7 @@ function App() {
               setShowSeller(false);
               setSellerStep('welcome');
               setPendingDeleteId(null);
+              setEditingListingId(null);
               setSellerError('');
               setManageMessage('');
             }}
@@ -1023,57 +1077,141 @@ function App() {
                           {availabilityLabel(item)}
                         </p>
                         {canManage ? (
-                          <div className="manage-actions">
-                            <label className="replace-photo-button">
-                              {isWorking ? 'Updating…' : 'Replace cover photo'}
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                          String(editingListingId) === String(item.id) ? (
+                            <form
+                              className="manage-edit-form"
+                              onSubmit={(event) => saveListingEdits(item, event)}
+                            >
+                              <label>
+                                Title
+                                <input
+                                  name="title"
+                                  value={listingEdits.title}
+                                  onChange={updateListingEdits}
+                                />
+                              </label>
+                              <label>
+                                Category
+                                <select
+                                  name="category"
+                                  value={listingEdits.category}
+                                  onChange={updateListingEdits}
+                                >
+                                  <option>Books</option>
+                                  <option>Clothing</option>
+                                  <option>Home</option>
+                                  <option>Accessories</option>
+                                </select>
+                              </label>
+                              <label>
+                                Condition
+                                <select
+                                  name="condition"
+                                  value={listingEdits.condition}
+                                  onChange={updateListingEdits}
+                                >
+                                  <option>Excellent</option>
+                                  <option>Very good</option>
+                                  <option>Gently loved</option>
+                                  <option>Good</option>
+                                </select>
+                              </label>
+                              <label>
+                                Price
+                                <input
+                                  name="price"
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={listingEdits.price}
+                                  onChange={updateListingEdits}
+                                />
+                              </label>
+                              <label className="manage-edit-note">
+                                Description
+                                <textarea
+                                  name="note"
+                                  value={listingEdits.note}
+                                  onChange={updateListingEdits}
+                                />
+                              </label>
+                              <div className="manage-actions">
+                                <button
+                                  className="replace-photo-button"
+                                  disabled={isWorking}
+                                >
+                                  {isWorking ? 'Saving…' : 'Save details'}
+                                </button>
+                                <button
+                                  className="text-button"
+                                  type="button"
+                                  disabled={isWorking}
+                                  onClick={() => setEditingListingId(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div className="manage-actions">
+                              <button
+                                className="replace-photo-button"
                                 disabled={isWorking}
-                                onChange={(event) => replaceCoverPhoto(item, event)}
-                              />
-                            </label>
-                            {(item.photos?.length || 0) < MAX_LISTING_PHOTOS && (
+                                onClick={() => beginListingEdit(item)}
+                              >
+                                Edit details
+                              </button>
                               <label className="replace-photo-button">
-                                {isWorking
-                                  ? 'Updating…'
-                                  : `Add photo · ${item.photos?.length || 0}/${MAX_LISTING_PHOTOS}`}
+                                {isWorking ? 'Updating…' : 'Replace cover photo'}
                                 <input
                                   type="file"
                                   accept="image/jpeg,image/png,image/webp"
                                   disabled={isWorking}
-                                  onChange={(event) => addListingPhoto(item, event)}
+                                  onChange={(event) => replaceCoverPhoto(item, event)}
                                 />
                               </label>
-                            )}
-                            {confirmingDelete ? (
-                              <span className="remove-confirm">
-                                Remove permanently?
-                                <button
-                                  className="remove-button"
-                                  disabled={isWorking}
-                                  onClick={() => removeListing(item)}
-                                >
-                                  Yes, remove
-                                </button>
+                              {(item.photos?.length || 0) < MAX_LISTING_PHOTOS && (
+                                <label className="replace-photo-button">
+                                  {isWorking
+                                    ? 'Updating…'
+                                    : `Add photo · ${item.photos?.length || 0}/${MAX_LISTING_PHOTOS}`}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    disabled={isWorking}
+                                    onChange={(event) => addListingPhoto(item, event)}
+                                  />
+                                </label>
+                              )}
+                              {confirmingDelete ? (
+                                <span className="remove-confirm">
+                                  Remove permanently?
+                                  <button
+                                    className="remove-button"
+                                    disabled={isWorking}
+                                    onClick={() => removeListing(item)}
+                                  >
+                                    Yes, remove
+                                  </button>
+                                  <button
+                                    className="text-button"
+                                    disabled={isWorking}
+                                    onClick={() => setPendingDeleteId(null)}
+                                  >
+                                    Keep it
+                                  </button>
+                                </span>
+                              ) : (
                                 <button
                                   className="text-button"
                                   disabled={isWorking}
-                                  onClick={() => setPendingDeleteId(null)}
+                                  onClick={() => removeListing(item)}
                                 >
-                                  Keep it
+                                  Remove listing
                                 </button>
-                              </span>
-                            ) : (
-                              <button
-                                className="text-button"
-                                disabled={isWorking}
-                                onClick={() => removeListing(item)}
-                              >
-                                Remove listing
-                              </button>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          )
                         ) : (
                           <p className="manage-locked">
                             Editing is locked while this one-of-one item is in checkout
