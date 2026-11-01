@@ -4,6 +4,30 @@
   line-height: 1.55;
   margin: -1rem 0 1.5rem;
 }
+
+.seller-access-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.seller-access-form label {
+  display: grid;
+  font: 0.58rem var(--mono);
+  gap: 0.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seller-access-form input {
+  background: #fffdf8;
+  border: 1px solid #c9c1af;
+  box-sizing: border-box;
+  color: var(--ink);
+  font: 400 0.85rem var(--sans);
+  min-width: 0;
+  padding: 0.7rem;
+  width: 100%;
+}
 .file-picker {
   display: block;
   border: 1px dashed var(--ink);

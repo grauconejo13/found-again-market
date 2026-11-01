@@ -11,6 +11,7 @@ Object.assign(process.env, {
   SUPABASE_URL: 'https://db.test',
   SUPABASE_SECRET_KEY: 'key',
   OPENROUTER_API_KEY: 'or',
+  SELLER_ACCESS_CODE: 'seller-test-code',
 });
 
 const MIN = 60 * 1000;
@@ -193,7 +194,16 @@ globalThis.fetch = async (url, init = {}) => {
 
 // ---------- helpers ----------
 let ipCounter = 0;
-const call = async (handler, { method = 'POST', body, query, ip } = {}) => {
+const call = async (
+  handler,
+  {
+    method = 'POST',
+    body,
+    query,
+    ip,
+    sellerCode = process.env.SELLER_ACCESS_CODE,
+  } = {},
+) => {
   const res = { code: 0, body: null, headers: {} };
   res.status = (c) => {
     res.code = c;
@@ -219,6 +229,7 @@ const call = async (handler, { method = 'POST', body, query, ip } = {}) => {
       headers: {
         host: 'shop.test',
         'x-forwarded-for': ip || `10.0.0.${++ipCounter}`,
+        ...(sellerCode === undefined ? {} : { 'x-seller-access-code': sellerCode }),
       },
     },
     res,
@@ -256,6 +267,7 @@ const { default: products } = await import('../api/products.js');
 const { default: photo } = await import('../api/photo.js');
 const { default: ai } = await import('../api/ai.js');
 const { default: listings } = await import('../api/listings.js');
+const { default: sellerAccess } = await import('../api/seller-access.js');
 
 beforeEach(() => {
   db = ids.map((id) => product(id));
@@ -263,6 +275,20 @@ beforeEach(() => {
   calls = [];
   onCapture = null;
   aiReply = null;
+});
+
+test('seller access: listing actions require the private code', async () => {
+  const denied = await call(sellerAccess, { sellerCode: 'not-the-code' });
+  assert.equal(denied.code, 401);
+
+  const allowed = await call(sellerAccess);
+  assert.equal(allowed.code, 200);
+
+  const listingDenied = await call(listings, {
+    sellerCode: 'not-the-code',
+    body: { title: 'Nope' },
+  });
+  assert.equal(listingDenied.code, 401);
 });
 
 // ---------- checkout ----------

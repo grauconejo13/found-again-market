@@ -50,9 +50,12 @@ npm test
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SECRET_KEY=your-secret-key
+SELLER_ACCESS_CODE=choose-a-long-private-passphrase
 ```
 
 `SUPABASE_SECRET_KEY` is server-only. Never use a `VITE_` prefix and never place it in browser code. The code also accepts the legacy `SUPABASE_SERVICE_ROLE_KEY` if that is what an older project provides.
+
+`SELLER_ACCESS_CODE` protects the seller workspace: publishing and managing listings require it, while the shopper storefront remains public. Keep this value out of public posts and source control. This is a practical demo gate, not replacement for production authentication.
 
 For the demo, seller photos are stored with the listing as small image data. A production version should upload images to Supabase Storage and save only their URLs.
 

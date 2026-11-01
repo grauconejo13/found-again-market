@@ -23,9 +23,10 @@ OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o-mini
 SUPABASE_URL=
 SUPABASE_SECRET_KEY=
+SELLER_ACCESS_CODE=
 ```
 
-`SUPABASE_SECRET_KEY`, `PAYPAL_CLIENT_SECRET`, and `OPENROUTER_API_KEY` are server-only secrets. Do not use a `VITE_` prefix and do not commit them.
+`SUPABASE_SECRET_KEY`, `PAYPAL_CLIENT_SECRET`, `OPENROUTER_API_KEY`, and `SELLER_ACCESS_CODE` are server-only secrets. Do not use a `VITE_` prefix and do not commit them.
 
 ## Supabase setup
 
@@ -63,6 +64,6 @@ npm run build
 - This is a single-storefront prototype, not yet a multi-seller marketplace.
 - Rate limits are per server instance; the hourly listing cap is enforced in Supabase and holds everywhere.
 - Seller photos are small compressed data stored with the product record; production should use Supabase Storage.
-- There is no buyer/seller authentication yet.
+- Buyer browsing and checkout are public. Seller changes require a private `SELLER_ACCESS_CODE`; a production marketplace should use Supabase Auth, row-level security, and individual seller accounts.
 - The AI drafts from seller notes plus clearly visible photo details. The seller must confirm its observations before publishing.
 - Payments are Sandbox-only for the hackathon demo.

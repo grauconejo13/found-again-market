@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabase, toClientProduct } from './_lib/supabase.js';
 import { rateLimit } from './_lib/rate-limit.js';
+import { requireSellerAccess } from './_lib/seller-access.js';
 
 const accents = new Set(['moss', 'butter', 'clay', 'lilac', 'sky', 'olive']);
 const categories = new Set(['Books', 'Clothing', 'Home', 'Accessories']);
@@ -140,6 +141,7 @@ async function removeListing(request, response) {
 }
 
 export default async function handler(request, response) {
+  if (!requireSellerAccess(request, response)) return;
   if (!isSupabaseConfigured())
     return response.status(503).json({ error: 'Supabase is not configured yet.' });
   if (request.method === 'PATCH') {

@@ -113,6 +113,14 @@ function App() {
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState(inventory);
   const [sellerStep, setSellerStep] = useState('welcome');
+  const [sellerAccessCode, setSellerAccessCode] = useState(() => {
+    try {
+      return sessionStorage.getItem('found-again-seller-access') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [sellerAccessInput, setSellerAccessInput] = useState('');
   const [photoName, setPhotoName] = useState('');
   const [listingPhotos, setListingPhotos] = useState([]);
   const [sellerError, setSellerError] = useState('');
@@ -221,6 +229,34 @@ function App() {
       };
       image.src = sourceUrl;
     });
+  const sellerRequestHeaders = (includeJson = true) => ({
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+    'x-seller-access-code': sellerAccessCode,
+  });
+  const unlockSeller = async (event) => {
+    event.preventDefault();
+    setSellerError('');
+    const code = sellerAccessInput.trim();
+    if (!code) {
+      setSellerError('Enter your private seller access code.');
+      return;
+    }
+    try {
+      const response = await fetch('/api/seller-access', {
+        method: 'POST',
+        headers: { 'x-seller-access-code': code },
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok)
+        throw new Error(data.error || 'Seller access could not be verified.');
+      sessionStorage.setItem('found-again-seller-access', code);
+      setSellerAccessCode(code);
+      setSellerAccessInput('');
+      setSellerStep('welcome');
+    } catch (error) {
+      setSellerError(error.message || 'Seller access could not be verified.');
+    }
+  };
   const chooseListingPhotos = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     setSellerError('');
@@ -313,7 +349,7 @@ function App() {
     try {
       const response = await fetch('/api/listings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: sellerRequestHeaders(),
         body: JSON.stringify(draft),
       });
       const data = await parseApiResponse(response);
@@ -348,7 +384,7 @@ function App() {
       const photo = await prepareListingPhoto(file);
       const response = await fetch('/api/listings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: sellerRequestHeaders(),
         body: JSON.stringify({ id: item.id, photo }),
       });
       const data = await parseApiResponse(response);
@@ -383,7 +419,7 @@ function App() {
       const photo = await prepareListingPhoto(file);
       const response = await fetch('/api/listings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: sellerRequestHeaders(),
         body: JSON.stringify({ id: item.id, photo, photoAction: 'append' }),
       });
       const data = await parseApiResponse(response);
@@ -414,6 +450,7 @@ function App() {
     try {
       const response = await fetch(`/api/listings?id=${encodeURIComponent(item.id)}`, {
         method: 'DELETE',
+        headers: sellerRequestHeaders(false),
       });
       const data = await parseApiResponse(response);
       if (!response.ok)
@@ -456,7 +493,7 @@ function App() {
     try {
       const response = await fetch('/api/listings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: sellerRequestHeaders(),
         body: JSON.stringify({ id: item.id, details: listingEdits }),
       });
       const data = await parseApiResponse(response);
@@ -702,7 +739,14 @@ function App() {
           <a href="#how-it-works">How it works</a>
         </nav>
         <div className="header-actions">
-          <button className="sell-button" onClick={() => setShowSeller(true)}>
+          <button
+            className="sell-button"
+            onClick={() => {
+              setSellerError('');
+              setShowSeller(true);
+              setSellerStep(sellerAccessCode ? 'welcome' : 'access');
+            }}
+          >
             Sell
           </button>
           <button className="cart-button" onClick={() => setShowCart(true)}>
@@ -990,6 +1034,35 @@ function App() {
             ×
           </button>
           <p className="eyebrow">SELLER WORKSPACE</p>
+          {sellerStep === 'access' && (
+            <>
+              <h2>A private seller space.</h2>
+              <p className="seller-intro">
+                Use the private access code provided by Found Again to create or manage
+                listings. Browsing and checkout stay open to everyone.
+              </p>
+              <form className="seller-access-form" onSubmit={unlockSeller}>
+                <label>
+                  Seller access code
+                  <input
+                    type="password"
+                    value={sellerAccessInput}
+                    onChange={(event) => setSellerAccessInput(event.target.value)}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                </label>
+                {sellerError && (
+                  <p className="seller-error" role="alert">
+                    {sellerError}
+                  </p>
+                )}
+                <button className="button" type="submit">
+                  Continue <span>→</span>
+                </button>
+              </form>
+            </>
+          )}
           {sellerStep === 'welcome' && (
             <>
               <h2>Give it another story.</h2>
