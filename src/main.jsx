@@ -116,6 +116,9 @@ function App() {
   const [photoName, setPhotoName] = useState('');
   const [listingPhotos, setListingPhotos] = useState([]);
   const [sellerError, setSellerError] = useState('');
+  const [listingActionId, setListingActionId] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [manageMessage, setManageMessage] = useState('');
   const [listing, setListing] = useState({
     name: '',
     category: 'Books',
@@ -318,6 +321,68 @@ function App() {
       setSellerError(
         error.message || 'We couldn’t publish this listing. Please try again.',
       );
+    }
+  };
+  const replaceCoverPhoto = async (item, event) => {
+    const input = event.currentTarget;
+    const [file] = Array.from(input.files || []);
+    if (!file) return;
+    setSellerError('');
+    setManageMessage('');
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      setSellerError('Use a JPEG, PNG, or WebP image for this listing.');
+      input.value = '';
+      return;
+    }
+    setListingActionId(item.id);
+    try {
+      const photo = await prepareListingPhoto(file);
+      const response = await fetch('/api/listings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, photo }),
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.product)
+        throw new Error(data.error || 'This cover photo could not be replaced.');
+      setProducts((current) =>
+        current.map((entry) =>
+          String(entry.id) === String(item.id) ? data.product : entry,
+        ),
+      );
+      setManageMessage(`${item.title} now has its new cover photo.`);
+    } catch (error) {
+      setSellerError(error.message || 'This cover photo could not be replaced.');
+    } finally {
+      setListingActionId(null);
+      input.value = '';
+    }
+  };
+  const removeListing = async (item) => {
+    if (String(pendingDeleteId) !== String(item.id)) {
+      setPendingDeleteId(item.id);
+      setSellerError('');
+      setManageMessage('');
+      return;
+    }
+    setSellerError('');
+    setListingActionId(item.id);
+    try {
+      const response = await fetch(`/api/listings?id=${encodeURIComponent(item.id)}`, {
+        method: 'DELETE',
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok)
+        throw new Error(data.error || 'This listing could not be removed.');
+      setProducts((current) =>
+        current.filter((entry) => String(entry.id) !== String(item.id)),
+      );
+      setPendingDeleteId(null);
+      setManageMessage(`${item.title} was removed from the collection.`);
+    } catch (error) {
+      setSellerError(error.message || 'This listing could not be removed.');
+    } finally {
+      setListingActionId(null);
     }
   };
   const openProduct = (item) => {
@@ -825,6 +890,9 @@ function App() {
             onClick={() => {
               setShowSeller(false);
               setSellerStep('welcome');
+              setPendingDeleteId(null);
+              setSellerError('');
+              setManageMessage('');
             }}
           >
             ×
@@ -852,9 +920,123 @@ function App() {
                   <span>3</span> Publish when it feels right
                 </p>
               </div>
-              <button className="button" onClick={() => setSellerStep('create')}>
-                Start a listing <span>→</span>
+              <div className="seller-actions seller-welcome-actions">
+                <button className="button" onClick={() => setSellerStep('create')}>
+                  Start a listing <span>→</span>
+                </button>
+                <button
+                  className="outline-button"
+                  onClick={() => {
+                    setSellerError('');
+                    setManageMessage('');
+                    setPendingDeleteId(null);
+                    setSellerStep('manage');
+                  }}
+                >
+                  Manage listings
+                </button>
+              </div>
+            </>
+          )}
+          {sellerStep === 'manage' && (
+            <>
+              <button
+                className="back-link"
+                onClick={() => {
+                  setPendingDeleteId(null);
+                  setSellerError('');
+                  setManageMessage('');
+                  setSellerStep('welcome');
+                }}
+              >
+                ← Seller workspace
               </button>
+              <h2>Manage listings.</h2>
+              <p className="seller-intro">
+                Replace a cover photo or remove an available listing. Reserved and sold
+                finds stay protected so a buyer’s checkout cannot be interrupted.
+              </p>
+              <p className="manage-disclosure">
+                Demo controls show the current collection. In the full product, these
+                actions belong only to the signed-in seller.
+              </p>
+              {manageMessage && <p className="manage-message">{manageMessage}</p>}
+              {sellerError && (
+                <p className="seller-error" role="alert">
+                  {sellerError}
+                </p>
+              )}
+              <div className="manage-list">
+                {products.map((item) => {
+                  const itemAvailability = availability(item);
+                  const canManage = itemAvailability === 'available';
+                  const isWorking = String(listingActionId) === String(item.id);
+                  const confirmingDelete = String(pendingDeleteId) === String(item.id);
+                  return (
+                    <article className="manage-item" key={item.id}>
+                      {item.photos?.[0] ? (
+                        <img className="manage-thumb" src={item.photos[0]} alt="" />
+                      ) : (
+                        <span className={`manage-thumb mini ${item.accent}`} />
+                      )}
+                      <div>
+                        <p className="product-category">
+                          {item.category} · {item.condition}
+                        </p>
+                        <h3>{item.title}</h3>
+                        <p className={`manage-availability ${itemAvailability}`}>
+                          {availabilityLabel(item)}
+                        </p>
+                        {canManage ? (
+                          <div className="manage-actions">
+                            <label className="replace-photo-button">
+                              {isWorking ? 'Updating…' : 'Replace cover photo'}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={isWorking}
+                                onChange={(event) => replaceCoverPhoto(item, event)}
+                              />
+                            </label>
+                            {confirmingDelete ? (
+                              <span className="remove-confirm">
+                                Remove permanently?
+                                <button
+                                  className="remove-button"
+                                  disabled={isWorking}
+                                  onClick={() => removeListing(item)}
+                                >
+                                  Yes, remove
+                                </button>
+                                <button
+                                  className="text-button"
+                                  disabled={isWorking}
+                                  onClick={() => setPendingDeleteId(null)}
+                                >
+                                  Keep it
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                className="text-button"
+                                disabled={isWorking}
+                                onClick={() => removeListing(item)}
+                              >
+                                Remove listing
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="manage-locked">
+                            Editing is locked while this one-of-one item is in checkout
+                            or sold.
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </>
           )}
           {sellerStep === 'create' && (
@@ -1049,6 +1231,12 @@ function App() {
                 }}
               >
                 Preview in shop <span>→</span>
+              </button>
+              <button
+                className="outline-button manage-after-publish"
+                onClick={() => setSellerStep('manage')}
+              >
+                Manage listings
               </button>
             </>
           )}

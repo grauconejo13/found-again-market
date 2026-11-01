@@ -18,10 +18,9 @@ export default async function handler(request, response) {
     if (!match) return response.status(404).end();
     response.setHeader('Content-Type', match[1]);
     response.setHeader('X-Content-Type-Options', 'nosniff');
-    response.setHeader(
-      'Cache-Control',
-      'public, max-age=86400, s-maxage=604800, immutable',
-    );
+    // Cover photos can be replaced from the seller workspace. Do not let a CDN
+    // serve an old image merely because the stable `/api/photo` URL was cached.
+    response.setHeader('Cache-Control', 'no-store');
     return response.status(200).send(Buffer.from(match[2], 'base64'));
   } catch {
     return response.status(500).end();

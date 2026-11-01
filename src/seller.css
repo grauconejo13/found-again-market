@@ -117,3 +117,127 @@
   font-size: 1.7rem;
   margin: 1rem 0;
 }
+
+.seller-welcome-actions {
+  margin-top: 1.25rem;
+}
+
+.seller-welcome-actions .outline-button {
+  flex: 0.9;
+}
+
+.back-link {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 0.63rem var(--mono);
+  letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.manage-disclosure,
+.manage-locked {
+  color: #647069;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.manage-message {
+  border-left: 3px solid #738768;
+  color: #31422b;
+  font-size: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.6rem 0.7rem;
+}
+
+.manage-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0;
+}
+
+.manage-item {
+  align-items: start;
+  border: 1px solid #c9c1af;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 68px minmax(0, 1fr);
+  padding: 0.7rem;
+}
+
+.manage-thumb {
+  background: #e5e4d8;
+  height: 68px;
+  object-fit: cover;
+  width: 68px;
+}
+
+.manage-item h3 {
+  font: 500 1rem var(--serif);
+  margin: 0.18rem 0;
+}
+
+.manage-availability {
+  font: 0.57rem var(--mono);
+  letter-spacing: 0.03em;
+  margin: 0.35rem 0 0.6rem;
+  text-transform: uppercase;
+}
+
+.manage-availability.held {
+  color: #8b5b32;
+}
+
+.manage-availability.sold {
+  color: #7d4c4c;
+}
+
+.manage-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.replace-photo-button,
+.text-button,
+.remove-button {
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font: 0.55rem var(--mono);
+  letter-spacing: 0.03em;
+  padding: 0.5rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.replace-photo-button input {
+  display: none;
+}
+
+.text-button {
+  border-color: #8f5550;
+  color: #713b36;
+}
+
+.remove-confirm {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font: 0.58rem var(--mono);
+  gap: 0.35rem;
+}
+
+.remove-button {
+  background: #713b36;
+  border-color: #713b36;
+  color: #fffdf8;
+}
+
+.manage-after-publish {
+  margin-top: 0.65rem;
+  min-height: 2.5rem;
+  width: 100%;
+}
