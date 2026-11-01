@@ -196,14 +196,55 @@
 .manage-actions {
   align-items: center;
   display: flex;
+  flex-basis: 100%;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.manage-primary-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.manage-menu-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  display: inline-flex;
+  font: 0.85rem var(--mono);
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-height: 2rem;
+  min-width: 2.35rem;
+  padding: 0 0.45rem 0.25rem;
+}
+
+.manage-overflow-menu {
+  align-items: center;
+  background: #fffdf8;
+  border: 1px solid #c9c1af;
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.6rem;
+}
+
+.manage-menu-label {
+  color: #647069;
+  flex-basis: 100%;
+  font: 0.52rem var(--mono);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .manage-edit-form {
   display: grid;
   gap: 0.55rem;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
 }
 
 .manage-edit-form label {
@@ -222,7 +263,10 @@
   color: var(--ink);
   font: 0.75rem var(--sans);
   padding: 0.45rem;
+  box-sizing: border-box;
   text-transform: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .manage-edit-form textarea {

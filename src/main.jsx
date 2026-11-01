@@ -118,6 +118,7 @@ function App() {
   const [sellerError, setSellerError] = useState('');
   const [listingActionId, setListingActionId] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [manageMenuId, setManageMenuId] = useState(null);
   const [manageMessage, setManageMessage] = useState('');
   const [editingListingId, setEditingListingId] = useState(null);
   const [listingEdits, setListingEdits] = useState({
@@ -430,6 +431,7 @@ function App() {
   };
   const beginListingEdit = (item) => {
     setPendingDeleteId(null);
+    setManageMenuId(null);
     setSellerError('');
     setManageMessage('');
     setListingEdits({
@@ -979,6 +981,7 @@ function App() {
               setShowSeller(false);
               setSellerStep('welcome');
               setPendingDeleteId(null);
+              setManageMenuId(null);
               setEditingListingId(null);
               setSellerError('');
               setManageMessage('');
@@ -1061,6 +1064,7 @@ function App() {
                   const canManage = itemAvailability === 'available';
                   const isWorking = String(listingActionId) === String(item.id);
                   const confirmingDelete = String(pendingDeleteId) === String(item.id);
+                  const menuIsOpen = String(manageMenuId) === String(item.id);
                   return (
                     <article className="manage-item" key={item.id}>
                       {item.photos?.[0] ? (
@@ -1154,61 +1158,84 @@ function App() {
                             </form>
                           ) : (
                             <div className="manage-actions">
-                              <button
-                                className="replace-photo-button"
-                                disabled={isWorking}
-                                onClick={() => beginListingEdit(item)}
-                              >
-                                Edit details
-                              </button>
-                              <label className="replace-photo-button">
-                                {isWorking ? 'Updating…' : 'Replace cover photo'}
-                                <input
-                                  type="file"
-                                  accept="image/jpeg,image/png,image/webp"
-                                  disabled={isWorking}
-                                  onChange={(event) => replaceCoverPhoto(item, event)}
-                                />
-                              </label>
-                              {(item.photos?.length || 0) < MAX_LISTING_PHOTOS && (
-                                <label className="replace-photo-button">
-                                  {isWorking
-                                    ? 'Updating…'
-                                    : `Add photo · ${item.photos?.length || 0}/${MAX_LISTING_PHOTOS}`}
-                                  <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    disabled={isWorking}
-                                    onChange={(event) => addListingPhoto(item, event)}
-                                  />
-                                </label>
-                              )}
-                              {confirmingDelete ? (
-                                <span className="remove-confirm">
-                                  Remove permanently?
-                                  <button
-                                    className="remove-button"
-                                    disabled={isWorking}
-                                    onClick={() => removeListing(item)}
-                                  >
-                                    Yes, remove
-                                  </button>
-                                  <button
-                                    className="text-button"
-                                    disabled={isWorking}
-                                    onClick={() => setPendingDeleteId(null)}
-                                  >
-                                    Keep it
-                                  </button>
-                                </span>
-                              ) : (
+                              <div className="manage-primary-actions">
                                 <button
-                                  className="text-button"
+                                  className="replace-photo-button"
                                   disabled={isWorking}
-                                  onClick={() => removeListing(item)}
+                                  onClick={() => beginListingEdit(item)}
                                 >
-                                  Remove listing
+                                  Edit details
                                 </button>
+                                <button
+                                  className="manage-menu-button"
+                                  disabled={isWorking}
+                                  aria-expanded={menuIsOpen}
+                                  aria-label={`More actions for ${item.title}`}
+                                  onClick={() => {
+                                    setPendingDeleteId(null);
+                                    setManageMenuId(menuIsOpen ? null : item.id);
+                                  }}
+                                >
+                                  •••
+                                </button>
+                              </div>
+                              {menuIsOpen && (
+                                <div className="manage-overflow-menu">
+                                  <p className="manage-menu-label">Listing actions</p>
+                                  <label className="replace-photo-button">
+                                    {isWorking ? 'Updating…' : 'Replace cover photo'}
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp"
+                                      disabled={isWorking}
+                                      onChange={(event) =>
+                                        replaceCoverPhoto(item, event)
+                                      }
+                                    />
+                                  </label>
+                                  {(item.photos?.length || 0) < MAX_LISTING_PHOTOS && (
+                                    <label className="replace-photo-button">
+                                      {isWorking
+                                        ? 'Updating…'
+                                        : `Add photo · ${item.photos?.length || 0}/${MAX_LISTING_PHOTOS}`}
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        disabled={isWorking}
+                                        onChange={(event) =>
+                                          addListingPhoto(item, event)
+                                        }
+                                      />
+                                    </label>
+                                  )}
+                                  {confirmingDelete ? (
+                                    <span className="remove-confirm">
+                                      Remove permanently?
+                                      <button
+                                        className="remove-button"
+                                        disabled={isWorking}
+                                        onClick={() => removeListing(item)}
+                                      >
+                                        Yes, remove
+                                      </button>
+                                      <button
+                                        className="text-button"
+                                        disabled={isWorking}
+                                        onClick={() => setPendingDeleteId(null)}
+                                      >
+                                        Keep it
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      className="text-button"
+                                      disabled={isWorking}
+                                      onClick={() => removeListing(item)}
+                                    >
+                                      Remove listing
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )
