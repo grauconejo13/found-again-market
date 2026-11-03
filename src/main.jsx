@@ -101,6 +101,7 @@ const parseApiResponse = async (response) => {
 
 function App() {
   const [category, setCategory] = useState('All');
+  const [availabilityFilter, setAvailabilityFilter] = useState('available');
   const [cart, setCart] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem('found-again-bag') || '[]');
@@ -171,15 +172,6 @@ function App() {
     }
   });
 
-  const items = useMemo(
-    () =>
-      products.filter(
-        (item) =>
-          (category === 'All' || item.category === category) &&
-          item.title.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [products, category, query],
-  );
   const total = sumPrices(cart);
   const holdIsActive = Boolean(hold?.expiresAt > Date.now());
   const availability = (item) =>
@@ -190,6 +182,16 @@ function App() {
           (holdIsActive && hold.itemIds.map(String).includes(String(item.id)))
         ? 'held'
         : 'available';
+  const items = useMemo(
+    () =>
+      products.filter(
+        (item) =>
+          (category === 'All' || item.category === category) &&
+          (availabilityFilter === 'all' || availability(item) === availabilityFilter) &&
+          item.title.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [products, category, query, availabilityFilter, soldIds, hold, holdIsActive],
+  );
   const availabilityLabel = (item) =>
     availability(item) === 'sold'
       ? 'Sold'
@@ -207,6 +209,21 @@ function App() {
       current.filter((entry) => String(entry.id) !== String(itemId)),
     );
     setCheckoutStatus('');
+  };
+  const removeUnavailableFromBag = (itemIds) => {
+    const unavailableIds = new Set(itemIds.map(String));
+    const removed = cart.filter((item) => unavailableIds.has(String(item.id)));
+    setCart((current) =>
+      current.filter((item) => !unavailableIds.has(String(item.id))),
+    );
+    if (!removed.length) {
+      setCheckoutStatus('A find is no longer available. Your bag has been refreshed.');
+      return;
+    }
+    const removedNames = removed.map((item) => item.title).join(' and ');
+    setCheckoutStatus(
+      `${removedNames} ${removed.length === 1 ? 'is' : 'are'} no longer available, so ${removed.length === 1 ? 'it was' : 'they were'} removed from your bag. Your remaining finds are still ready.`,
+    );
   };
   const prepareListingPhoto = (file) =>
     new Promise((resolve, reject) => {
@@ -550,7 +567,33 @@ function App() {
         body: JSON.stringify({ itemIds: cart.map((item) => item.id) }),
       });
       const data = await parseApiResponse(response);
-      if (response.status === 409) loadProducts();
+      if (response.status === 409) {
+        const unavailableIds = Array.isArray(data.unavailableIds)
+          ? data.unavailableIds
+          : [];
+        if (unavailableIds.length) {
+          removeUnavailableFromBag(unavailableIds);
+          loadProducts();
+        } else {
+          const refreshedProducts = await loadProducts();
+          const unavailableAfterRefresh = refreshedProducts
+            .filter(
+              (item) =>
+                item.availability === 'sold' ||
+                (item.availability === 'reserved' &&
+                  new Date(item.reservedUntil) > new Date()),
+            )
+            .map((item) => item.id);
+          if (unavailableAfterRefresh.length) {
+            removeUnavailableFromBag(unavailableAfterRefresh);
+          } else {
+            setCheckoutStatus(
+              'A find changed availability. Your collection has been refreshed—please try checkout again.',
+            );
+          }
+        }
+        return;
+      }
       if (!response.ok || !data.approveUrl)
         throw new Error(data.error || 'PayPal checkout is not ready yet.');
       const nextHold = {
@@ -679,20 +722,19 @@ function App() {
         data: await parseApiResponse(response),
       }))
       .then(({ response, data }) => {
-        if (response.ok && Array.isArray(data.products)) {
-          setProducts(
-            data.products.map((product) =>
-              product.photos?.length
-                ? product
-                : {
-                    ...product,
-                    photos: demoPhotosByTitle.get(product.title) || [],
-                  },
-            ),
-          );
-        }
+        if (!response.ok || !Array.isArray(data.products)) return [];
+        const nextProducts = data.products.map((product) =>
+          product.photos?.length
+            ? product
+            : {
+                ...product,
+                photos: demoPhotosByTitle.get(product.title) || [],
+              },
+        );
+        setProducts(nextProducts);
+        return nextProducts;
       })
-      .catch(() => {});
+      .catch(() => []);
   useEffect(() => {
     loadProducts();
   }, []);
@@ -876,6 +918,21 @@ function App() {
               </button>
             ))}
           </div>
+          <div className="availability-filters" aria-label="Filter by availability">
+            {[
+              { value: 'available', label: 'Available' },
+              { value: 'held', label: 'Reserved' },
+              { value: 'sold', label: 'Sold' },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                className={availabilityFilter === filter.value ? 'active' : ''}
+                onClick={() => setAvailabilityFilter(filter.value)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
           <label className="search">
             <span>⌕</span>
             <input
@@ -887,7 +944,10 @@ function App() {
         </div>
         <div className="product-grid">
           {items.map((item) => (
-            <article className="product-card" key={item.id}>
+            <article
+              className={`product-card ${availability(item) !== 'available' ? 'is-unavailable' : ''}`}
+              key={item.id}
+            >
               <button
                 className={`product-image ${item.accent}`}
                 onClick={() => openProduct(item)}
