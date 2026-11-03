@@ -31,7 +31,7 @@ declare target_count integer;
 begin
   perform id from public.products
   where id = any(p_ids)
-    and (availability = 'available' or (availability = 'reserved' and reserved_until < now()))
+    and (availability = 'available' or (availability = 'reserved' and (reserved_until is null or reserved_until <= now())))
   for update;
   get diagnostics target_count = row_count;
 

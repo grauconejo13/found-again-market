@@ -15,6 +15,30 @@ const MAX_ITEMS = 10;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const money = (cents) => (cents / 100).toFixed(2);
 
+// A hold belongs to an open PayPal checkout for just ten minutes. Clear any
+// abandoned or legacy malformed holds before validating a new bag so they
+// never keep a find locked after the visitor has left checkout.
+async function releaseExpiredReservations() {
+  if (!isSupabaseConfigured()) return;
+  const resetReservation = {
+    availability: 'available',
+    reserved_until: null,
+    paypal_order_id: null,
+  };
+  const cutoff = encodeURIComponent(new Date().toISOString());
+  await Promise.all([
+    supabase(`products?availability=eq.reserved&reserved_until=lt.${cutoff}`, {
+      method: 'PATCH',
+      body: resetReservation,
+    }),
+    // Reservations from before the expiry field existed are not valid holds.
+    supabase('products?availability=eq.reserved&reserved_until=is.null', {
+      method: 'PATCH',
+      body: resetReservation,
+    }),
+  ]);
+}
+
 async function trustedItems(ids) {
   if (!isSupabaseConfigured()) {
     const missingIds = ids.filter((id) => !catalog.has(id));
@@ -29,6 +53,7 @@ async function trustedItems(ids) {
     throw Object.assign(new Error('Please refresh your bag and try again.'), {
       status: 409,
     });
+  await releaseExpiredReservations();
   const rows = await supabase(
     `products?select=id,title,price_cents,availability,reserved_until&id=in.(${ids.join(',')})`,
   );
