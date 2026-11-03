@@ -19,6 +19,20 @@
     min-height: 52px;
   }
 }
+.product-card.is-unavailable .product-image::after {
+  background: rgba(33, 55, 43, 0.38);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+.product-card.is-unavailable .product-image img {
+  filter: grayscale(0.25);
+}
+.product-card.is-unavailable .product-image > span,
+.product-card.is-unavailable .availability {
+  z-index: 1;
+}
 .availability {
   position: absolute;
   right: 13px;
