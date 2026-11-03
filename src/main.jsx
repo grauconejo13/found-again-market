@@ -202,6 +202,12 @@ function App() {
       current.some((entry) => entry.id === item.id) ? current : [...current, item],
     );
   };
+  const removeFromCart = (itemId) => {
+    setCart((current) =>
+      current.filter((entry) => String(entry.id) !== String(itemId)),
+    );
+    setCheckoutStatus('');
+  };
   const prepareListingPhoto = (file) =>
     new Promise((resolve, reject) => {
       const image = new Image();
@@ -995,6 +1001,14 @@ function App() {
                       <small>{item.condition}</small>
                     </p>
                     <b>{money(item.price)}</b>
+                    <button
+                      type="button"
+                      className="bag-remove"
+                      onClick={() => removeFromCart(item.id)}
+                      aria-label={`Remove ${item.title} from your bag`}
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
