@@ -274,6 +274,26 @@ button {
   background: var(--ink);
   color: #fff;
 }
+.availability-filters {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+  margin-right: 1.5rem;
+}
+.availability-filters button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: #68736b;
+  font: 0.62rem var(--mono);
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  text-transform: uppercase;
+}
+.availability-filters button.active,
+.availability-filters button:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
 .search {
   display: flex;
   align-items: center;
@@ -568,6 +588,9 @@ footer p {
   .filters {
     overflow: auto;
     padding-bottom: 0.6rem;
+  }
+  .availability-filters {
+    margin: 0 0 0.7rem;
   }
   .search {
     padding: 0.6rem 0;
