@@ -17,12 +17,13 @@ const money = (cents) => (cents / 100).toFixed(2);
 
 async function trustedItems(ids) {
   if (!isSupabaseConfigured()) {
-    const items = ids.map((id) => catalog.get(id)).filter(Boolean);
-    if (items.length !== ids.length)
-      throw Object.assign(new Error('Please refresh your bag and try again.'), {
+    const missingIds = ids.filter((id) => !catalog.has(id));
+    if (missingIds.length)
+      throw Object.assign(new Error('One or more finds are no longer available.'), {
         status: 409,
+        unavailableIds: missingIds,
       });
-    return items.map((item, index) => ({ id: ids[index], ...item }));
+    return ids.map((id) => ({ id, ...catalog.get(id) }));
   }
   if (!ids.every((id) => UUID.test(id)))
     throw Object.assign(new Error('Please refresh your bag and try again.'), {
@@ -31,20 +32,22 @@ async function trustedItems(ids) {
   const rows = await supabase(
     `products?select=id,title,price_cents,availability,reserved_until&id=in.(${ids.join(',')})`,
   );
-  if (rows.length !== ids.length)
-    throw Object.assign(
-      new Error('One of these items could not be found. Please refresh your bag.'),
-      { status: 409 },
-    );
-  const unavailable = rows.find(
+  if (rows.length !== ids.length) {
+    const foundIds = new Set(rows.map((row) => row.id));
+    throw Object.assign(new Error('One or more finds are no longer available.'), {
+      status: 409,
+      unavailableIds: ids.filter((id) => !foundIds.has(id)),
+    });
+  }
+  const unavailable = rows.filter(
     (row) =>
       row.availability === 'sold' ||
       (row.availability === 'reserved' && new Date(row.reserved_until) > new Date()),
   );
-  if (unavailable)
+  if (unavailable.length)
     throw Object.assign(
-      new Error(`“${unavailable.title}” was just claimed by another shopper.`),
-      { status: 409 },
+      new Error('One or more finds were just claimed by another shopper.'),
+      { status: 409, unavailableIds: unavailable.map((row) => row.id) },
     );
   return rows.map((row) => ({
     id: row.id,
@@ -144,6 +147,9 @@ export default async function handler(request, response) {
   } catch (error) {
     return response
       .status(error.status || 500)
-      .json({ error: error.message || 'Unable to start PayPal checkout.' });
+      .json({
+        error: error.message || 'Unable to start PayPal checkout.',
+        ...(error.unavailableIds ? { unavailableIds: error.unavailableIds } : {}),
+      });
   }
 }
