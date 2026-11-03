@@ -434,7 +434,7 @@ footer p {
 }
 .bag-items > div {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: 52px minmax(0, 1fr) auto auto;
   gap: 0.8rem;
   align-items: center;
   padding: 1rem 0;
@@ -458,6 +458,22 @@ footer p {
 }
 .bag-items b {
   font: 0.75rem var(--mono);
+  white-space: nowrap;
+}
+.bag-remove {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: #657269;
+  font: 0.58rem var(--mono);
+  letter-spacing: 0.04em;
+  padding: 0.42rem 0.5rem;
+  text-transform: uppercase;
+}
+.bag-remove:hover,
+.bag-remove:focus-visible {
+  border-color: var(--ink);
+  color: var(--ink);
+  outline: none;
 }
 .cart-total {
   display: flex;
