@@ -19,6 +19,7 @@ create table if not exists public.products (
 
 create index if not exists products_availability_idx on public.products (availability, reserved_until);
 -- One PayPal order can reserve several one-of-one items, so this must not be unique.
+alter table public.products drop constraint if exists products_paypal_order_id_key;
 create index if not exists products_paypal_order_idx on public.products (paypal_order_id);
 create index if not exists products_created_at_idx on public.products (created_at desc);
 
