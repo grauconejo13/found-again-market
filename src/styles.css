@@ -505,6 +505,30 @@ footer p {
   width: 100%;
   margin-top: 0.5rem;
 }
+.checkout-recovery {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  background: #f7f0df;
+}
+.checkout-recovery p {
+  margin: 0 0 0.65rem;
+  font: 0.62rem var(--mono);
+  color: #53655a;
+}
+.checkout-recovery .outline-button,
+.text-button {
+  font-size: 0.62rem;
+  padding: 0.55rem 0.7rem;
+}
+.text-button {
+  margin-left: 0.55rem;
+  border: 0;
+  background: transparent;
+  color: #68756d;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
 .sandbox-note,
 .empty {
   color: #718078;

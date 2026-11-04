@@ -599,6 +599,8 @@ function App() {
       const nextHold = {
         itemIds: cart.map((item) => item.id),
         expiresAt: Date.now() + 10 * 60 * 1000,
+        orderId: data.orderId,
+        approveUrl: data.approveUrl,
       };
       sessionStorage.setItem('found-again-hold', JSON.stringify(nextHold));
       sessionStorage.setItem(
@@ -618,6 +620,38 @@ function App() {
   };
   const clearPayPalParams = () =>
     window.history.replaceState({}, '', window.location.pathname);
+  const resumeCheckout = () => {
+    if (!hold?.approveUrl) return;
+    window.location.assign(hold.approveUrl);
+  };
+  const releaseCheckout = async () => {
+    if (!hold?.orderId) return;
+    setCheckoutStatus('Releasing your checkout hold…');
+    try {
+      const response = await fetch('/api/paypal/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: hold.orderId }),
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok) throw new Error(data.error || 'We could not release this hold.');
+      clearHold();
+      await loadProducts();
+      setCheckoutStatus('Checkout released. Your finds are available again.');
+    } catch (error) {
+      setCheckoutStatus(error.message);
+    }
+  };
+  useEffect(() => {
+    // Browser Back does not call PayPal's cancellation URL. Restore a clear
+    // recovery choice instead of leaving that checkout stranded in the bag.
+    if (holdIsActive && hold?.orderId) {
+      setShowCart(true);
+      setCheckoutStatus(
+        'Your PayPal checkout is paused. You can resume it or release these finds.',
+      );
+    }
+  }, []);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('token');
@@ -1079,6 +1113,17 @@ function App() {
               <button className="button checkout" onClick={startCheckout}>
                 Pay with PayPal <span>→</span>
               </button>
+              {holdIsActive && hold?.orderId && (
+                <div className="checkout-recovery">
+                  <p>Checkout paused for these one-of-one finds.</p>
+                  <button className="outline-button" type="button" onClick={resumeCheckout}>
+                    Resume PayPal
+                  </button>
+                  <button className="text-button" type="button" onClick={releaseCheckout}>
+                    Release hold
+                  </button>
+                </div>
+              )}
               <p className="sandbox-note">
                 Your bag does not reserve one-of-one finds. A 10-minute hold begins only
                 after PayPal checkout opens. {checkoutStatus}
