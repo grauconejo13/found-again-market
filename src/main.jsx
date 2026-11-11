@@ -156,7 +156,17 @@ function App() {
   const [suggestedBundle, setSuggestedBundle] = useState([]);
   const [bundleLabel, setBundleLabel] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState('');
-  const [receipt, setReceipt] = useState(null);
+  // The drawer shows either the bag or one specific completed order. A receipt is
+  // shown right after its own capture, or when the buyer explicitly asks for it;
+  // starting a new bag or checkout always returns to the bag.
+  const [drawerView, setDrawerView] = useState('bag');
+  const [lastReceipt, setLastReceipt] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('found-again-last-receipt') || 'null');
+    } catch {
+      return null;
+    }
+  });
   const [hold, setHold] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem('found-again-hold') || 'null');
@@ -173,6 +183,12 @@ function App() {
   });
 
   const total = sumPrices(cart);
+  const showingReceipt = drawerView === 'receipt' && Boolean(lastReceipt);
+  const lastReceiptLink = lastReceipt ? (
+    <button className="text-button view-receipt" type="button" onClick={() => viewLastReceipt()}>
+      View last receipt
+    </button>
+  ) : null;
   const holdIsActive = Boolean(hold?.expiresAt > Date.now());
   const availability = (item) =>
     item.availability === 'sold' || soldIds.map(String).includes(String(item.id))
@@ -198,8 +214,20 @@ function App() {
       : availability(item) === 'held'
         ? 'Reserved — checkout in progress'
         : '1 available · one of one';
+  const openBag = () => {
+    setDrawerView('bag');
+    setShowCart(true);
+  };
+  const viewLastReceipt = () => {
+    if (!lastReceipt) return;
+    setDrawerView('receipt');
+    setShowCart(true);
+  };
   const addToCart = (item) => {
     if (availability(item) !== 'available') return;
+    // A new find starts a new bag: leave any finished order's confirmation behind.
+    setDrawerView('bag');
+    setCheckoutStatus('');
     setCart((current) =>
       current.some((entry) => entry.id === item.id) ? current : [...current, item],
     );
@@ -550,7 +578,7 @@ function App() {
     setSuggestedBundle([]);
     setBundleLabel('');
     setShowGuide(false);
-    setShowCart(true);
+    openBag();
   };
   const startCheckout = async () => {
     if (!cart.length || cart.some((item) => availability(item) !== 'available')) {
@@ -559,6 +587,7 @@ function App() {
       );
       return;
     }
+    setDrawerView('bag');
     setCheckoutStatus('Preparing your secure PayPal checkout…');
     try {
       const response = await fetch('/api/paypal/order', {
@@ -598,6 +627,7 @@ function App() {
         throw new Error(data.error || 'PayPal checkout is not ready yet.');
       const nextHold = {
         itemIds: cart.map((item) => item.id),
+        items: cart.map(({ id, title, price }) => ({ id, title, price })),
         expiresAt: Date.now() + 10 * 60 * 1000,
         orderId: data.orderId,
         approveUrl: data.approveUrl,
@@ -646,7 +676,7 @@ function App() {
     // Browser Back does not call PayPal's cancellation URL. Restore a clear
     // recovery choice instead of leaving that checkout stranded in the bag.
     if (holdIsActive && hold?.orderId) {
-      setShowCart(true);
+      openBag();
       setCheckoutStatus(
         'Your PayPal checkout is paused. You can resume it or release these finds.',
       );
@@ -657,7 +687,7 @@ function App() {
     const orderId = params.get('token');
     const outcome = params.get('paypal');
     if (!orderId || !['return', 'cancel'].includes(outcome)) return;
-    setShowCart(true);
+    openBag();
     if (outcome === 'cancel') {
       setCheckoutStatus(
         'Checkout cancelled. Your finds are back in the collection—nothing was charged.',
@@ -695,9 +725,38 @@ function App() {
           }
           throw new Error(data.error || 'We could not confirm this payment.');
         }
-        const purchasedIds = JSON.parse(
-          sessionStorage.getItem('found-again-checkout-items') || '[]',
+        // Only trust the saved checkout details if they belong to the order PayPal returned.
+        let savedHold = null;
+        try {
+          savedHold = JSON.parse(sessionStorage.getItem('found-again-hold') || 'null');
+        } catch {}
+        const holdForOrder = savedHold?.orderId === orderId ? savedHold : null;
+        const purchasedIds = (
+          holdForOrder?.itemIds ||
+          JSON.parse(sessionStorage.getItem('found-again-checkout-items') || '[]')
         ).map(String);
+        const savedBag = (() => {
+          try {
+            return JSON.parse(sessionStorage.getItem('found-again-bag') || '[]');
+          } catch {
+            return [];
+          }
+        })();
+        const purchasedItems =
+          holdForOrder?.items ||
+          savedBag
+            .filter((item) => purchasedIds.includes(String(item.id)))
+            .map(({ id, title, price }) => ({ id, title, price }));
+        const completedReceipt = {
+          orderId,
+          receiptId: data.receiptId,
+          amount: data.amount,
+          items: purchasedItems,
+          paidAt: new Date().toISOString(),
+        };
+        try {
+          sessionStorage.setItem('found-again-last-receipt', JSON.stringify(completedReceipt));
+        } catch {}
         const nextSold = [...new Set([...soldIds.map(String), ...purchasedIds])];
         sessionStorage.setItem('found-again-sold', JSON.stringify(nextSold));
         clearHold();
@@ -709,8 +768,12 @@ function App() {
           ),
         );
         setSoldIds(nextSold);
-        setReceipt(data);
-        setCart([]);
+        setLastReceipt(completedReceipt);
+        setDrawerView('receipt');
+        // Remove only what was paid for; anything else stays in the bag.
+        setCart((current) =>
+          current.filter((item) => !purchasedIds.includes(String(item.id))),
+        );
         setCheckoutStatus('');
         clearPayPalParams();
         loadProducts();
@@ -831,7 +894,7 @@ function App() {
           >
             Sell
           </button>
-          <button className="cart-button" onClick={() => setShowCart(true)}>
+          <button className="cart-button" onClick={() => openBag()}>
             Bag <span>{cart.length}</span>
           </button>
         </div>
@@ -1019,7 +1082,7 @@ function App() {
                 disabled={availability(item) !== 'available'}
                 onClick={() => {
                   addToCart(item);
-                  setShowCart(true);
+                  openBag();
                 }}
               >
                 {availability(item) === 'sold'
@@ -1071,17 +1134,35 @@ function App() {
           <button className="close" onClick={() => setShowCart(false)}>
             ×
           </button>
-          <p className="eyebrow">{receipt ? 'ORDER CONFIRMED' : 'YOUR BAG'}</p>
-          <h2>{receipt ? 'It’s yours.' : 'Almost yours.'}</h2>
-          {receipt ? (
-            <div className="receipt">
+          <p className="eyebrow">{showingReceipt ? 'ORDER CONFIRMED' : 'YOUR BAG'}</p>
+          <h2>{showingReceipt ? 'It’s yours.' : 'Almost yours.'}</h2>
+          {showingReceipt ? (
+            <div className="receipt" data-order-id={lastReceipt.orderId}>
               <p>Thank you for giving a good thing another beginning.</p>
               <p>
-                Receipt <b>{receipt.receiptId}</b>
+                Receipt <b>{lastReceipt.receiptId}</b>
               </p>
-              <p>Paid with PayPal Sandbox · {money(receipt.amount)}</p>
+              {lastReceipt.items?.length > 0 && (
+                <ul className="receipt-items">
+                  {lastReceipt.items.map((item) => (
+                    <li key={item.id}>
+                      <span>{item.title}</span>
+                      <span>{money(item.price)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p>Paid with PayPal Sandbox · {money(lastReceipt.amount)}</p>
+              {lastReceipt.paidAt && (
+                <p className="receipt-date">
+                  {new Date(lastReceipt.paidAt).toLocaleString()}
+                </p>
+              )}
               <button className="outline-button" onClick={() => window.print()}>
                 Print / save receipt
+              </button>
+              <button className="text-button receipt-continue" type="button" onClick={openBag}>
+                {cart.length ? 'Back to your bag' : 'Continue shopping'}
               </button>
             </div>
           ) : cart.length ? (
@@ -1124,15 +1205,19 @@ function App() {
                   </button>
                 </div>
               )}
+              {lastReceiptLink}
               <p className="sandbox-note">
                 Your bag does not reserve one-of-one finds. A 10-minute hold begins only
                 after PayPal checkout opens. {checkoutStatus}
               </p>
             </>
           ) : (
-            <p className="empty">
-              {checkoutStatus || 'Your next favorite is waiting.'}
-            </p>
+            <>
+              <p className="empty">
+                {checkoutStatus || 'Your next favorite is waiting.'}
+              </p>
+              {lastReceiptLink}
+            </>
           )}
         </aside>
       )}
@@ -1743,7 +1828,7 @@ function App() {
                 onClick={() => {
                   addToCart(selectedItem);
                   setSelectedItem(null);
-                  setShowCart(true);
+                  openBag();
                 }}
               >
                 {availability(selectedItem) === 'available'

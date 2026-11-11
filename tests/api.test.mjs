@@ -56,6 +56,7 @@ const matches = (row, params) =>
     if (op === 'eq') return String(cell) === value;
     if (op === 'gt') return cell != null && cmp(cell, value) > 0;
     if (op === 'lt') return cell != null && cmp(cell, value) < 0;
+    if (op === 'is') return value === 'null' ? cell == null : String(cell) === value;
     if (op === 'in')
       return value.replace(/[()]/g, '').split(',').includes(String(cell));
     throw new Error(`Unsupported filter ${field}=${expr}`);
